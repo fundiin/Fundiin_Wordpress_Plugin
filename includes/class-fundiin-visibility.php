@@ -28,7 +28,7 @@ class Fundiin_Visibility
             echo '<div id="script-general-container"></div>
 
             ';
-            echo "<script>var price = $product_price; </script>";
+            echo '<script type="application/javascript">var price = ' . $product_price . '; </script>';
             echo '<script type="application/javascript" 
                         crossorigin="anonymous" 
                         src="' . $host . '/merchants/productdetailjs/' . $merchantId . '.js">

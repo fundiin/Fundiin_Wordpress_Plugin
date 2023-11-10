@@ -39,6 +39,7 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 
 	private function fundiin_checkout($order, $requestType)
 	{
+
 		$clientId = $this->clientId;
 		$merchantId = $this->merchantId;
 		$secretKey = $this->secretKey;
@@ -47,7 +48,6 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 			? $this->notifyUrl
 			: get_home_url() . '/wp-json/fundiin_payment_' . $clientId . '/notify';
 		$returnUrl = $order->get_checkout_order_received_url();
-
 
 		$amount = strval(round(WC()->cart->total));
 		$now = round(microtime(true) * 1000);
@@ -84,11 +84,15 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 		);
 
 		$shipping_instance = $GLOBALS['fdn_shipping'];
+
 		$address_attr_obj = $shipping_instance->getData($orderId);
+
 		$address_attr = isset($address_attr_obj["formatted"]) ? $address_attr_obj["formatted"] : [];
 
 		$billing_address_obj = array();
 		$shipping_address_obj = array();
+
+
 		if (isset($address_attr["billing_city"])):
 			$billing_address_obj = array(
 				!empty($address_attr["billing_address"]) ? $address_attr["billing_address"] : '',
@@ -105,6 +109,8 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 				!empty($address_attr["shipping_state"]) ? $address_attr["shipping_state"] : '',
 			);
 		endif;
+
+
 		$billing_address_str = implode(", ", array_filter($billing_address_obj));
 		$shipping_address_str = implode(", ", array_filter($shipping_address_obj));
 		$shipping_address = "";
@@ -114,6 +120,7 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 		elseif (!empty($billing_address_str) && !empty($shipping_address_str)):
 			$shipping_address = $shipping_address_str;
 		endif;
+
 
 		if (empty($shipping_address)):
 			$city = $order_data['shipping']['city'] . ", " . $order_data['shipping']['state'];
@@ -161,7 +168,6 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 			$signature = bin2hex(hash_hmac("sha256", json_encode($data), $secretKey, true));
 
 			$data_encode = json_encode($data);
-
 
 
 			$response = wp_remote_post(
@@ -216,7 +222,6 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 
 		}
 		if (($amount === null) or (!isset($amount)) or ($order->get_total() != $amount)) {
-			// echo 'fail';
 			$error = new WP_Error('cannot_refund', 'Hoàn tiền thất bại. Bạn phải hoàn tiền toàn bộ đơn hàng.');
 
 			return $error;

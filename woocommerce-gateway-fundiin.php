@@ -26,6 +26,10 @@ if (!defined('ABSPATH')) {
 
 define('WC_GATEWAY_FUNDIIN_VERSION', '2.0.1');
 
+if (!defined("FUNDIIN_PLUGIN_FILE")) {
+    define("FUNDIIN_PLUGIN_FILE", __FILE__);
+}
+
 function fundiin()
 {
     static $plugin;
@@ -43,14 +47,14 @@ function fundiin()
 function load_shipping_libraries_classes()
 {
     $files = glob(dirname(FUNDIIN_PLUGIN_FILE) . '/shipping/libs/*.php');
-
     foreach ($files as $file) {
         require_once $file;
     }
 
     // Create instance object
-    $plugin = \BluecoralWoo\Plugin::instance();
-    $GLOBALS['fdn_shipping'] = $plugin;
+    $plugin_g = \BluecoralWoo\Plugin::instance();
+    $GLOBALS['fdn_shipping'] = $plugin_g;
 }
+load_shipping_libraries_classes();
 
 fundiin()->run();
