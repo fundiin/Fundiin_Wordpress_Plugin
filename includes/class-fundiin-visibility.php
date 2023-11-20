@@ -24,6 +24,7 @@ class Fundiin_Visibility
         if ($product) {
             $product_price = (int) $product->get_price();
             $merchantId = fundiin()->settings->merchantId;
+            $host = fundiin()->settings->get_fundiin_host();
             echo '<div id="script-general-container"></div>
 
             ';
@@ -38,7 +39,7 @@ class Fundiin_Visibility
     public function fundiin_in_checkout()
     {
         $merchantId = fundiin()->settings->merchantId;
-
+        $host = fundiin()->settings->get_fundiin_host();
         echo '<script type="application/javascript" 
                         crossorigin="anonymous" 
                         src="' . $host . '/merchants/checkoutjs/' . $merchantId . '.js">
