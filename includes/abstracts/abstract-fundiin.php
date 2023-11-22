@@ -56,10 +56,6 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
     {
         $screen = get_current_screen();
 
-        // Only enqueue the setting scripts on the Fundiin Checkout settings screen
-        // if ($screen && 'woocommerce_page_wc-settings' === $screen->id && isset($_GET['tab'], $_GET['section']) && 'checkout' === $_GET['tab'] && 'Fundiin' === $_GET['section']) {
-        //     // wp_enqueue_script('wc-gateway-fundiin-settings', fundiin()->plugin_url . 'assets/js/wc-gateway-fundiin-settings.js', array('jquery'), fundiin()->version, true);
-        // }
     }
 
     /**

@@ -12,7 +12,6 @@ class Fundiin_Response
     public function __construct()
     {
         $this->response_action();
-        // $this->register_notify_api();
     }
 
     public function response_action()
@@ -31,8 +30,11 @@ class Fundiin_Response
             'notify',
             array(
                 'methods' => 'POST',
-                'callback' => array($this, 'check_fundiin_notify')
-            )
+                'callback' => array($this, 'check_fundiin_notify'),
+                'permission_callback' => '__return_true',
+
+            ),
+
         );
 
     }
@@ -46,9 +48,9 @@ class Fundiin_Response
         if (!$this->check_enough_fields_confirm_return()) {
             wc_add_notice(__('Thiếu thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-gateway-fundiin'), 'error');
         } else {
-            $orderId = $_GET['orderId'];
+            $orderId = explode($_GET['referenceId']);
             $localMessage = $_GET['message'];
-            $errorCode = $_GET['resultCode'];
+            $paymentStatus = $_GET['paymentStatus'];
 
             $request = $_GET;
 
@@ -58,7 +60,7 @@ class Fundiin_Response
                 WC()->cart->empty_cart();
                 $order = $this->get_order($orderId);
                 $redirectUrl = wc_get_cart_url();
-                if ($errorCode == 0 || $errorCode == 7002) {
+                if ($paymentStatus == "SUCCESS") {
                     $order->update_status('on-hold');
                     $order->add_order_note(
                         sprintf(__('Thanh toán đơn hàng: %s thành công bằng %s.', 'your-plugin'), $request['orderId'], $order->get_meta('payment method'))
@@ -121,7 +123,7 @@ class Fundiin_Response
 
             }
 
-            // return new WP_REST_Response(array(), 204);
+            return new WP_REST_Response(array(), 204);
         } catch (Exception $ex) {
             return new WP_REST_Response(array('message' => $ex->getMessage()), 400);
         }

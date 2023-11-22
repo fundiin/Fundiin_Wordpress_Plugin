@@ -37,7 +37,7 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 		);
 	}
 
-	private function fundiin_checkout($order, $requestType)
+	private function fundiin_checkout($order, $payment_method)
 	{
 
 		$clientId = $this->clientId;
@@ -50,7 +50,6 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 		$returnUrl = $order->get_checkout_order_received_url();
 
 		$amount = strval(round(WC()->cart->total));
-		$now = round(microtime(true) * 1000);
 		$orderId = $order->get_id();
 		$order_data = $order->get_data();
 		$orderInfo = "Thanh toán đơn hàng " . $this->merchantName;
@@ -83,67 +82,23 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 			"lastName" => $order->get_billing_last_name(),
 		);
 
-		$shipping_instance = $GLOBALS['fdn_shipping'];
-
-		$address_attr_obj = $shipping_instance->getData($orderId);
-
-		$address_attr = isset($address_attr_obj["formatted"]) ? $address_attr_obj["formatted"] : [];
-
-		$billing_address_obj = array();
-		$shipping_address_obj = array();
 
 
-		if (isset($address_attr["billing_city"])):
-			$billing_address_obj = array(
-				!empty($address_attr["billing_address"]) ? $address_attr["billing_address"] : '',
-				!empty($address_attr["billing_ward"]) ? $address_attr["billing_ward"] : '',
-				!empty($address_attr["billing_city"]) ? $address_attr["billing_city"] : '',
-				!empty($address_attr["billing_state"]) ? $address_attr["billing_state"] : '',
-			);
-		endif;
-		if (isset($address_attr["shipping_city"])):
-			$shipping_address_obj = array(
-				!empty($address_attr["shipping_address"]) ? $address_attr["shipping_address"] : '',
-				!empty($address_attr["shipping_ward"]) ? $address_attr["shipping_ward"] : '',
-				!empty($address_attr["shipping_city"]) ? $address_attr["shipping_city"] : '',
-				!empty($address_attr["shipping_state"]) ? $address_attr["shipping_state"] : '',
-			);
-		endif;
-
-
-		$billing_address_str = implode(", ", array_filter($billing_address_obj));
-		$shipping_address_str = implode(", ", array_filter($shipping_address_obj));
-		$shipping_address = "";
-
-		if ($billing_address_str == $shipping_address_str || empty($shipping_address_str)):
-			$shipping_address = $billing_address_str;
-		elseif (!empty($billing_address_str) && !empty($shipping_address_str)):
-			$shipping_address = $shipping_address_str;
-		endif;
-
-
-		if (empty($shipping_address)):
-			$city = $order_data['shipping']['city'] . ", " . $order_data['shipping']['state'];
-			$shipping_address = $order_data['shipping']['address_1'] . ", " . $city;
-			if ($city == ", ") {
-				$city = $order_data['billing']['city'] . ", " . $order_data['billing']['state'];
-				$shipping_address = $order_data['billing']['address_1'] . ", " . $city;
-			}
-		endif;
 		// Assuming $order is a WooCommerce order object
 		$shipping = array(
-			"city" => $order_data['billing']['city'],
+			"city" => $order->get_shipping_city(),
 			"zipCode" => $order->get_shipping_postcode(),
 			"district" => $order->get_shipping_state(),
 			"ward" => $order->get_shipping_address_2(),
-			"street" => $shipping_address_str,
-			"streetNumber" => $order->get_shipping_address_2(),
+			"street" => $order->get_shipping_address_1(),
+			"streetNumber" => "",
 			"houseNumber" => "",
 			// You may need to get this from custom order fields
 			"houseExtension" => null,
 			// You may need to get this from custom order fields
 			"country" => $order->get_shipping_country()
 		);
+
 		try {
 			$url = $this->get_fundiin_checkout_url();
 

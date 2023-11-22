@@ -118,7 +118,6 @@ class Fundiin_Plugin
         require_once $this->includes_path . 'class-fundiin-gateway-loader.php';
         require_once $this->includes_path . 'class-fundiin-response.php';
         require_once $this->includes_path . 'class-fundiin-visibility.php';
-        // // require_once $this->includes_path . 'class-fundiin-checkout-handler.php';
         require_once $this->includes_path . 'abstracts/abstract-fundiin.php';
         require_once $this->includes_path . 'class-fundiin-with-aio.php';
 
@@ -219,7 +218,6 @@ class Fundiin_Plugin
         if (false !== strpos($file, plugin_basename(dirname(__DIR__)))) {
             $row_meta = array(
                 'docs' => sprintf('<a href="%s" title="%s">%s</a>', esc_url('https://docs.fundiin.vn/v2/'), esc_attr__('Xem tài liệu hướng dẫn', 'woocommerce-gateway-fundiin'), esc_html__('Tài liệu', 'woocommerce-gateway-fundiin')),
-                'support' => sprintf('<a href="%s" title="%s">%s</a>', esc_url('https://docs.fundiin.vn/v2/'), esc_attr__('Yêu cầu hỗ trợ', 'woocommerce-gateway-fundiin'), esc_html__('Hỗ trợ', 'woocommerce-gateway-fundiin')),
             );
         }
 

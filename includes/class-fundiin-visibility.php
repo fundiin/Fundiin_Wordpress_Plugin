@@ -24,11 +24,11 @@ class Fundiin_Visibility
         if ($product) {
             $product_price = (int) $product->get_price();
             $merchantId = fundiin()->settings->merchantId;
-            $host = str_replace("gateway-sandbox", "gateway-dev", fundiin()->settings->get_fundiin_host());
+            $host = fundiin()->settings->get_fundiin_host();
             echo '<div id="script-general-container"></div>
 
             ';
-            echo '<script type="application/javascript">var price = ' . $product_price . '; </script>';
+            echo '<script type="application/javascript">let price = ' . $product_price . '; </script>';
             echo '<script type="application/javascript" 
                         crossorigin="anonymous" 
                         src="' . $host . '/merchants/productdetailjs/' . $merchantId . '.js">
@@ -39,8 +39,7 @@ class Fundiin_Visibility
     public function fundiin_in_checkout()
     {
         $merchantId = fundiin()->settings->merchantId;
-        $host = str_replace("gateway-sandbox", "gateway-dev", fundiin()->settings->get_fundiin_host());
-
+        $host = fundiin()->settings->get_fundiin_host();
         echo '<script type="application/javascript" 
                         crossorigin="anonymous" 
                         src="' . $host . '/merchants/checkoutjs/' . $merchantId . '.js">

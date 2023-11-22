@@ -43,18 +43,4 @@ function fundiin()
     return $plugin;
 }
 
-
-function load_shipping_libraries_classes()
-{
-    $files = glob(dirname(FUNDIIN_PLUGIN_FILE) . '/shipping/libs/*.php');
-    foreach ($files as $file) {
-        require_once $file;
-    }
-
-    // Create instance object
-    $plugin_g = \BluecoralWoo\Plugin::instance();
-    $GLOBALS['fdn_shipping'] = $plugin_g;
-}
-load_shipping_libraries_classes();
-
 fundiin()->run();
