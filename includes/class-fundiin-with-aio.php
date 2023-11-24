@@ -48,7 +48,7 @@ class Fundiin extends WC_Gateway_Fundiin
 			? $this->notifyUrl
 			: get_home_url() . '/wp-json/fundiin_payment_' . $clientId . '/notify';
 		$successfulUrl = $order->get_checkout_order_received_url();
-		$unsucessfulUrl = $order->get_cancel_order_url();
+		$unsucessfulUrl = $order->get_view_order_url();
 		$amount = strval(round(WC()->cart->total));
 		$orderId = $order->get_id();
 		$now = round(microtime(true) * 1000);
