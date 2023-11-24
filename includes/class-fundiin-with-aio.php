@@ -174,9 +174,8 @@ class Fundiin extends WC_Gateway_Fundiin
 		$merchantId = $this->merchantId;
 		$secretKey = $this->secretKey;
 		$now = round(microtime(true) * 1000);
-		$orderId = $clientId . '_REFUND-' . $now;
+		$orderId = $clientId . '_REFUND_' . $order_id . "_" . $now;
 		$transId = $order->get_transaction_id();
-		$requestId = strval($now);
 		if (($transId === null) or (!isset($transId))) {
 
 			$error = new WP_Error('transaction_not_found', 'Đơn hàng chưa được thanh toán nên không thể hoàn tiền.');
@@ -194,7 +193,6 @@ class Fundiin extends WC_Gateway_Fundiin
 
 		if ($order->get_status() != 'processing') {
 			$error = new WP_Error('cannot_refund', 'Đơn hàng chưa được thanh toán nên không thể hoàn tiền.');
-			// echo 'fail';
 			return $error;
 
 		}
@@ -213,9 +211,9 @@ class Fundiin extends WC_Gateway_Fundiin
 				)
 			);
 			$data_encode = json_encode($data);
-			// echo $data_encode;
 			$signature = hash_hmac("sha256", $data_encode, $secretKey);
-
+			echo $data_encode;
+			echo $signature;
 			$response = wp_remote_post(
 				$url,
 				array(
