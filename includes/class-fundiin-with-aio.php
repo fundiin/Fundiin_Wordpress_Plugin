@@ -226,6 +226,7 @@ class Fundiin extends WC_Gateway_Fundiin
 					'sslverify' => false
 				)
 			);
+			// var_dump($response);
 			if (is_wp_error($response)) {
 				$error_message = $response->get_error_message();
 				wc_add_notice(__($error_message, 'woocommerce-gateway-fundiin'), 'error');
@@ -233,8 +234,10 @@ class Fundiin extends WC_Gateway_Fundiin
 			} else {
 				$result = json_decode($response['body']);
 				if ($result->resultStatus != "APPROVED") {
-					wc_add_notice(__($result->resultMsg, 'woocommerce-gateway-fundiin'), 'error');
-					return false;
+					wc_add_notice($result->resultMsg, 'woocommerce-gateway-fundiin');
+					$error = new WP_Error('cannot_refund', $result->resultMsg);
+
+					return $error;
 				}
 				$order->add_order_note(
 					sprintf(__('Hoàn tiền %s qua Fundiin.', 'your-plugin'), wc_price($amount))
