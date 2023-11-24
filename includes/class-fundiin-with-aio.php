@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 	exit; // Exit if accessed directly
 }
 
-class Fundiin_With_AIO extends WC_Gateway_Fundiin
+class Fundiin extends WC_Gateway_Fundiin
 {
 	public function __construct()
 	{
@@ -51,7 +51,8 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 
 		$amount = strval(round(WC()->cart->total));
 		$orderId = $order->get_id();
-		$order_data = $order->get_data();
+		$now = round(microtime(true) * 1000);
+
 		$orderInfo = "Thanh toán đơn hàng " . $this->merchantName;
 		$items = WC()->cart->get_cart();
 		$gwItems = [];
@@ -62,7 +63,7 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 			foreach ($terms as $term) {
 				array_push($category, $term->name);
 			}
-			$categoryListString = $category . join(',');
+			$categoryListString = join(',', $category);
 			$gwItem = array(
 				"productId" => $_product->get_id(),
 				"productName" => $_product->get_name(),
@@ -110,7 +111,7 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 				"notifyUrl" => $notifyUrl,
 				"description" => $orderInfo,
 				"paymentMethod" => "BNPL",
-				"referenceId" => $orderId,
+				"referenceId" => $orderId . "_" . $now,
 				"extraData" => $orderInfo,
 				"amount" => array(
 					"value" => $amount,
@@ -139,20 +140,27 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 				)
 			);
 			if (is_wp_error($response)) {
+
 				$error_message = $response->get_error_message();
+
 				wc_add_notice(__($error_message, 'woocommerce-gateway-fundiin'), 'error');
+
+				throw new Exception('error_message');
 			} else {
 				$result = json_decode($response['body']);
-				if ($result->resultCode != 0) {
-					wc_add_notice(__($result->resultMsg, 'woocommerce-gateway-fundiin'), 'error');
-					return null;
+
+				if ($result->resultStatus != "APPROVED") {
+					var_dump($data_encode);
+					wc_add_notice('Từ chối : ' . $data_encode . $result->resultMsg, 'error');
+					throw new Exception();
 				}
 				return $result->paymentUrl;
 			}
 			wc_add_notice('Yêu cầu không hợp lệ', 'error');
-			return null;
+			throw new Exception('Yêu cầu không hợp lệ');
+
 		} catch (Exception $ex) {
-			wc_add_notice($ex->getMessage(), 'error');
+			throw new Exception('ERROR: ' . $ex->getMessage());
 		}
 	}
 
@@ -195,7 +203,7 @@ class Fundiin_With_AIO extends WC_Gateway_Fundiin
 
 			$data = array(
 				"merchantId" => $merchantId,
-				"referenceId" => $transId,
+				"referenceId" => $orderId,
 				"paymentTransId" => $transId,
 				"lang" => "vi",
 				"description" => $reason,

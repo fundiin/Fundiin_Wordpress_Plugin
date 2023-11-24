@@ -16,7 +16,7 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
     public function __construct()
     {
         $this->id = "fundiin";
-        $this->has_fields = true;
+        $this->has_fields = false;
         $this->order_button_text = __("Mua trước trả sau", "woocommerce");
         $this->method_title = __("Fundiin Payment Gateway", "woocommerce");
         $this->method_description = __("Thanh toán trả sau cùng Fundiin", "woocommerce");
@@ -44,7 +44,7 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
 
 
         add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
-        add_action('admin_enqueue_scripts', array($this, 'settings_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'settings_scripts'));
     }
 
     public function process_admin_options()
@@ -54,7 +54,7 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
 
     public function settings_scripts()
     {
-        $screen = get_current_screen();
+
 
     }
 
@@ -70,7 +70,6 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
     // Display additional fields on the checkout page
     public function payment_fields()
     {
-        $fundiin_qr = fundiin()->plugin_url . 'assets/images/logo-color.png';
 
         fundiin()->visibility->fundiin_in_checkout();
 

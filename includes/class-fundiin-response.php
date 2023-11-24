@@ -22,8 +22,8 @@ class Fundiin_Response
 
     public function register_notify_api()
     {
-        $fundiin_with_aio = fundiin()->fundiin_with_aio;
-        $clientId = $fundiin_with_aio->clientId;
+        $fundiin = fundiin()->fundiin;
+        $clientId = $fundiin->clientId;
 
         register_rest_route(
             'fundiin_payment_' . $clientId,
@@ -61,7 +61,8 @@ class Fundiin_Response
                 $order = $this->get_order($orderId);
                 $redirectUrl = wc_get_cart_url();
                 if ($paymentStatus == "SUCCESS") {
-                    $order->update_status('on-hold');
+                    $order->payment_complete();
+                    $order->reduce_order_stock();
                     $order->add_order_note(
                         sprintf(__('Thanh toán đơn hàng: %s thành công bằng %s.', 'your-plugin'), $request['orderId'], $order->get_meta('payment method'))
                     );
@@ -98,7 +99,6 @@ class Fundiin_Response
         if (!$this->check_valid_info_confirm_signature($request)) {
             return new WP_REST_RESPONSE(array("message" => "Sai thông tin chữ ký"), 200);
         }
-        // exit;
         $returnBody = json_decode($request->get_body(), 1);
         try {
             $order = wc_get_order($returnBody['referenceId']);
@@ -109,6 +109,8 @@ class Fundiin_Response
                     $order->set_transaction_id($request['paymentTransId']);
                     $order->update_meta_data('fundiin_orderId', $request['orderId']);
                     $order->update_meta_data('fundiin_transId', $request['paymentTransId']);
+                    $order->payment_complete();
+                    $order->reduce_order_stock();
                     $order->update_status('processing', "Thanh toán thành công qua Fundiin với mã số giao dịch " . $returnBody['paymentTransId'] . ".");
                     $order->save();
 
@@ -148,9 +150,9 @@ class Fundiin_Response
      */
     private function check_valid_info_confirm_signature($request)
     {
-        $fundiin_with_aio = fundiin()->fundiin_with_aio;
-        $secretKey = $fundiin_with_aio->secretKey;
-        $merchantId = $fundiin_with_aio->merchantId;
+        $fundiin = fundiin()->fundiin;
+        $secretKey = $fundiin->secretKey;
+        $merchantId = $fundiin->merchantId;
         $body = json_encode(json_decode($request->get_body(), true));
         $reSignature = hash_hmac('sha256', $body, $secretKey);
         if (json_decode($body, true)['merchantId'] != $merchantId) {

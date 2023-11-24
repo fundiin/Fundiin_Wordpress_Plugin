@@ -31,7 +31,7 @@ class Fundiin_Gateway_Loader
     public function payment_gateways($methods)
     {
 
-        $methods[] = 'Fundiin_With_AIO';
+        $methods[] = 'Fundiin';
 
         return $methods;
     }

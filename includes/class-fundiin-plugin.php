@@ -122,10 +122,11 @@ class Fundiin_Plugin
         require_once $this->includes_path . 'class-fundiin-with-aio.php';
 
         $this->settings = new Fundiin_Settings();
-        $this->gateway_loader = new Fundiin_Gateway_Loader();
         $this->response = new fundiin_Response();
         $this->visibility = new Fundiin_Visibility();
-        $this->fundiin_with_aio = new fundiin_With_AIO();
+        $this->gateway_loader = new Fundiin_Gateway_Loader();
+
+        $this->fundiin = new Fundiin();
         $this->add_cors_plugin();
     }
 
