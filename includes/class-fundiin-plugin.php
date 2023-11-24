@@ -169,7 +169,7 @@ class Fundiin_Plugin
     /**
      * Allow Fundiin domains for redirect.
      *
-     * @since 2.0.1
+     * @since 2.0.0
      *
      * @param array $domains Whitelisted domains for `wp_safe_redirect`
      *
