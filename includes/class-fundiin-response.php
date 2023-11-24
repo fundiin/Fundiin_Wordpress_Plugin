@@ -108,7 +108,7 @@ class Fundiin_Response
             }
 
             if ($order->get_status() == 'pending') {
-                if ($returnBody['notificationType'] == "PAYMENT_STATUS" || $returnBody['paymentStatus'] == "SUCCESS") {
+                if ($returnBody['notificationType'] == "PAYMENT_STATUS" && $returnBody['paymentStatus'] == "SUCCESS") {
 
                     $order->set_transaction_id($request['paymentTransId']);
                     $order->update_meta_data('fundiin_orderId', $request['orderId']);
@@ -121,7 +121,7 @@ class Fundiin_Response
                     return new WP_REST_Response(array(), 204);
                 } else {
                     $order->update_status('cancelled');
-                    $order->add_order_note(__($returnBody['resultMsg'], 'woocommerce'));
+                    $order->add_order_note(__($returnBody['resultStatus'], 'woocommerce'));
                     $order->save();
 
                     return new WP_REST_Response(array(), 400);
