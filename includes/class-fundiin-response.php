@@ -173,6 +173,9 @@ class Fundiin_Response
      */
     private function check_enough_fields_confirm_notify($request)
     {
+        if (!is_array($request)) {
+            return false;
+        }
         $requiredFields = array(
             'merchantId',
             'referenceId',
