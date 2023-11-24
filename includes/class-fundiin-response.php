@@ -209,7 +209,7 @@ class Fundiin_Response
      */
     public function get_order($orderId)
     {
-        $order_id = explode("-", $orderId)[1];
+        $order_id = explode("_", $orderId)[0];
         return new WC_Order($order_id);
     }
 }
