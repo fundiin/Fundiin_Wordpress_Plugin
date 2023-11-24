@@ -1,10 +1,33 @@
-.vscode/
+
+*.php~
+*.php.bak
+*.php.swp
+*.php.swo
+*.phpcs
+*.phpcs.xml
+*.phpmd.xml
+*.phpunit.result.cache
+
+*.log
+*.pot
+*.sql
+*.zip
+*.log
+*.pot
+*.sql
+*.zip
+Thumbs.db
 .DS_Store
+.htaccess
 
 
-# IntelliJ IDEA
-.idea/
-*.iws
-*.iml
-*.ipr
+/.idea/
+/.vscode/
+/.gitattributes
+/.gitignore
+/.git/
 
+wp-config.php
+wp-config-local.php
+wp-config-dev.php
+wp-config-staging.php
