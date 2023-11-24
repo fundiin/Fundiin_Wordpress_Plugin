@@ -115,6 +115,8 @@ class Fundiin_Response
                     $order->update_meta_data('fundiin_transId', $request['paymentTransId']);
                     $order->payment_complete();
                     $order->reduce_order_stock();
+                    $order->add_order_note("Thanh toán thành công qua Fundiin với mã số giao dịch " . $returnBody['paymentTransId'] . ".");
+
                     $order->update_status('processing', "Thanh toán thành công qua Fundiin với mã số giao dịch " . $returnBody['paymentTransId'] . ".");
                     $order->save();
 
