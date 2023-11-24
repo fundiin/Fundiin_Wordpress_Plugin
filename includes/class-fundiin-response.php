@@ -123,7 +123,7 @@ class Fundiin_Response
                     return new WP_REST_Response(array(), 204);
                 } else {
                     $order->update_status('cancelled');
-                    $order->add_order_note($returnBody['resultStatus']);
+                    $order->add_order_note('Đơn hàng bị huỷ: ' . $returnBody['resultMsg']);
                     $order->save();
 
                     return new WP_REST_Response(array(), 400);

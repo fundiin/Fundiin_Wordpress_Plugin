@@ -240,7 +240,7 @@ class Fundiin extends WC_Gateway_Fundiin
 					return $error;
 				}
 				$order->add_order_note(
-					sprintf(__('Hoàn tiền %s qua Fundiin.', 'your-plugin'), wc_price($amount))
+					sprintf(__('Đơn hàng đã hoàn tiền số tiền %s qua Fundiin.', 'your-plugin'), wc_price($amount))
 				);
 				$order->update_meta_data('fundiin_refund_orderId', $result->referenceId);
 				$order->update_meta_data('fundiin_refund_transId', $result->refundTransId);
