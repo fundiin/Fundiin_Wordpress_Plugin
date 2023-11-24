@@ -99,9 +99,13 @@ class Fundiin_Response
         if (!$this->check_valid_info_confirm_signature($request)) {
             return new WP_REST_RESPONSE(array("message" => "Sai thông tin chữ ký"), 200);
         }
+
         $returnBody = json_decode($request->get_body(), 1);
         try {
-            $order = wc_get_order($returnBody['referenceId']);
+            $order = wc_get_order(explode('_', $returnBody['referenceId'])[0]);
+            if (!$order) {
+                return new WP_REST_Response(array('message' => 'Không tìm thấy đơn hàng'), 400);
+            }
 
             if ($order->get_status() == 'pending') {
                 if ($returnBody['notificationType'] == "PAYMENT_STATUS" || $returnBody['paymentStatus'] == "SUCCESS") {
