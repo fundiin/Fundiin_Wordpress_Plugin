@@ -47,8 +47,8 @@ class Fundiin extends WC_Gateway_Fundiin
 		$notifyUrl = ($this->notifyUrl !== '')
 			? $this->notifyUrl
 			: get_home_url() . '/wp-json/fundiin_payment_' . $clientId . '/notify';
-		$returnUrl = $order->get_checkout_order_received_url();
-
+		$successfulUrl = $order->get_checkout_order_received_url();
+		$unsucessfulUrl = $order->get_cancel_order_url();
 		$amount = strval(round(WC()->cart->total));
 		$orderId = $order->get_id();
 		$now = round(microtime(true) * 1000);
@@ -106,8 +106,8 @@ class Fundiin extends WC_Gateway_Fundiin
 			$data = array(
 				"merchantId" => $merchantId,
 				"requestType" => "installment",
-				"successRedirectUrl" => $returnUrl,
-				"unSuccessRedirectUrl" => $returnUrl,
+				"successRedirectUrl" => $successfulUrl,
+				"unSuccessRedirectUrl" => $unsucessfulUrl,
 				"notifyUrl" => $notifyUrl,
 				"description" => $orderInfo,
 				"paymentMethod" => "BNPL",
