@@ -212,8 +212,7 @@ class Fundiin extends WC_Gateway_Fundiin
 			);
 			$data_encode = json_encode($data);
 			$signature = hash_hmac("sha256", $data_encode, $secretKey);
-			echo $data_encode;
-			echo $signature;
+
 			$response = wp_remote_post(
 				$url,
 				array(
