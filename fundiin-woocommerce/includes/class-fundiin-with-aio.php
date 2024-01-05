@@ -40,6 +40,15 @@ class Fundiin extends WC_Gateway_Fundiin
 	private function fundiin_checkout($order, $payment_method)
 	{
 
+		Fundiin_Logger::wr_log('Start checked out for order ' . $order->get_id());
+		$merchant = json_encode(
+			array(
+				'clientId' => $this->clientId,
+				'merchantId' => $this->merchantId,
+				'secretKey' => $this->secretKey,
+			)
+		);
+		Fundiin_Logger::wr_log('Merchant Information: ' . $merchant);
 		$clientId = $this->clientId;
 		$merchantId = $this->merchantId;
 		$secretKey = $this->secretKey;
@@ -67,7 +76,7 @@ class Fundiin extends WC_Gateway_Fundiin
 			$gwItem = array(
 				"productId" => $_product->get_id(),
 				"productName" => $_product->get_name(),
-				"description" => $_product->get_description(),
+				"description" => $_product->get_name(),
 				"price" => $_product->get_sale_price(),
 				"currency" => "VND",
 				"quantity" => $values['quantity'],
@@ -122,18 +131,22 @@ class Fundiin extends WC_Gateway_Fundiin
 				"items" => $gwItems
 			);
 			$signature = bin2hex(hash_hmac("sha256", json_encode($data), $secretKey, true));
-
+			$header = array(
+				'Content-Type' => 'application/json',
+				'Signature' => $signature,
+				'Client-Id' => $clientId
+			);
 			$data_encode = json_encode($data);
+			Fundiin_Logger::wr_log('Order ID ' . $order->get_id());
+			Fundiin_Logger::wr_log('Request data ' . $data_encode);
+			Fundiin_Logger::wr_log('Request header ' . json_encode($header));
+
 
 
 			$response = wp_remote_post(
 				$url,
 				array(
-					'headers' => array(
-						'Content-Type' => 'application/json',
-						'Signature' => $signature,
-						'Client-Id' => $clientId
-					),
+					'headers' => $header,
 					'timeout' => 10,
 					'body' => $data_encode,
 					'sslverify' => false
@@ -142,7 +155,7 @@ class Fundiin extends WC_Gateway_Fundiin
 			if (is_wp_error($response)) {
 
 				$error_message = $response->get_error_message();
-
+				Fundiin_Logger::wr_log('Error message at request ' . $error_message);
 				wc_add_notice(__($error_message, 'woocommerce-gateway-fundiin'), 'error');
 
 				throw new Exception('error_message');
@@ -150,17 +163,20 @@ class Fundiin extends WC_Gateway_Fundiin
 				$result = json_decode($response['body']);
 
 				if ($result->resultStatus != "APPROVED") {
-					var_dump($data_encode);
-					wc_add_notice('Từ chối : ' . $data_encode . $result->resultMsg, 'error');
+					wc_add_notice(_("Không thể tạo đơn hàng và thanh toán qua Fundiin \n"), 'error');
+					Fundiin_Logger::wr_log('Fail at Fundiin ' . $response['body']);
 					throw new Exception();
 				}
+				Fundiin_Logger::wr_log('Initial payment success at Fundiin ' . $response['body']);
 				return $result->paymentUrl;
 			}
 			wc_add_notice('Yêu cầu không hợp lệ', 'error');
 			throw new Exception('Yêu cầu không hợp lệ');
 
 		} catch (Exception $ex) {
-			throw new Exception('ERROR: ' . $ex->getMessage());
+			Fundiin_Logger::wr_log('ERROR AT CODE ' . $ex->getMessage());
+
+			throw new Exception();
 		}
 	}
 
@@ -211,7 +227,7 @@ class Fundiin extends WC_Gateway_Fundiin
 				)
 			);
 			$data_encode = json_encode($data);
-			$signature = hash_hmac("sha256", $data_encode, $secretKey);
+			$signature = bin2hex(hash_hmac("sha256", $data_encode, $secretKey));
 
 			$response = wp_remote_post(
 				$url,
@@ -226,7 +242,6 @@ class Fundiin extends WC_Gateway_Fundiin
 					'sslverify' => false
 				)
 			);
-			// var_dump($response);
 			if (is_wp_error($response)) {
 				$error_message = $response->get_error_message();
 				wc_add_notice(__($error_message, 'woocommerce-gateway-fundiin'), 'error');

@@ -115,12 +115,13 @@ class Fundiin_Plugin
 
         // // Load handlers.
         require_once $this->includes_path . 'class-fundiin-settings.php';
+        require_once $this->includes_path . 'class-fundiin-logger.php';
+
         require_once $this->includes_path . 'class-fundiin-gateway-loader.php';
         require_once $this->includes_path . 'class-fundiin-response.php';
         require_once $this->includes_path . 'class-fundiin-visibility.php';
         require_once $this->includes_path . 'abstracts/abstract-fundiin.php';
         require_once $this->includes_path . 'class-fundiin-with-aio.php';
-
         $this->settings = new Fundiin_Settings();
         $this->response = new fundiin_Response();
         $this->visibility = new Fundiin_Visibility();
