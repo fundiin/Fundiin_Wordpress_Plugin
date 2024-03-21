@@ -38,14 +38,25 @@ class Fundiin_Response
         );
 
     }
+    public function check_enough_fields_confirm_return()
+    {
+        if (
+            !isset ($_GET['referenceId']) ||
+            !isset ($_GET['message']) ||
+            !isset ($_GET['paymentStatus'])
+        ) {
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Receive return param from fundiin
-     * Please do not edit if not necessary (This function will impact to your Woocommerce order)
+     * Please do not edit if not necessary (This function will impact to your WooCommerce order)
      */
     public function fundiin_handle_response_return()
     {
-        if (!$this->check_enough_fields_confirm_return()) {
+        if (!$this->check_enough_fields_confirm_notify()) {
             wc_add_notice(__('Thiếu thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-gateway-fundiin'), 'error');
         } else {
             $orderId = explode($_GET['referenceId']);
@@ -199,7 +210,7 @@ class Fundiin_Response
 
         $missingFields = array_diff($requiredFields, array_keys($request));
         if (
-            !empty($missingFields)
+            !empty ($missingFields)
         ) {
             return false;
         }
