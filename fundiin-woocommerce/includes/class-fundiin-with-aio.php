@@ -95,6 +95,10 @@ class Fundiin extends WC_Gateway_Fundiin
         if (strpos($phone_number, "+84") === 0) {
             $phone_number = "0" . substr($phone_number, 3);
         }
+        $phone_number = str_replace(" ", "", $phone_number);
+        // get number only
+        $phone_number = preg_replace("/[^0-9]/", "", $phone_number);
+
         $customer = [
             "phoneNumber" => $phone_number,
             "email" => $order->get_billing_email(),
