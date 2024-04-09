@@ -50,22 +50,24 @@ class Fundiin extends WC_Gateway_Fundiin
         $clientId = $this->clientId;
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
-        $siteId = $this->siteId;
+        $storeId = $this->storeId;
 
         $notifyUrl =
             $this->notifyUrl !== ""
-            ? $this->notifyUrl
-            : get_home_url() .
-            "/wp-json/fundiin_payment_" .
-            $clientId .
-            "/notify";
+                ? $this->notifyUrl
+                : get_home_url() .
+                    "/wp-json/fundiin_payment_" .
+                    $clientId .
+                    "/notify";
         $successfulUrl = $order->get_checkout_order_received_url();
         $unsucessfulUrl = $order->get_view_order_url();
         $amount = strval(round(WC()->cart->total));
         $orderId = $order->get_id();
         $now = round(microtime(true) * 1000);
 
-        $orderInfo = __("Thanh toán đơn hàng ", "woocommerce-gateway-fundiin") . $this->merchantName;
+        $orderInfo =
+            __("Thanh toán đơn hàng ", "woocommerce-gateway-fundiin") .
+            $this->merchantName;
         $items = WC()->cart->get_cart();
         $gwItems = [];
         foreach ($items as $item => $values) {
@@ -93,6 +95,10 @@ class Fundiin extends WC_Gateway_Fundiin
         if (strpos($phone_number, "+84") === 0) {
             $phone_number = "0" . substr($phone_number, 3);
         }
+        $phone_number = str_replace(" ", "", $phone_number);
+        // get number only
+        $phone_number = preg_replace("/[^0-9]/", "", $phone_number);
+
         $customer = [
             "phoneNumber" => $phone_number,
             "email" => $order->get_billing_email(),
@@ -123,7 +129,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 "requestType" => "installment",
                 "successRedirectUrl" => $successfulUrl,
                 "unSuccessRedirectUrl" => $unsucessfulUrl,
-                "siteId" => $siteId,
+                "storeId" => $storeId,
                 "notifyUrl" => $notifyUrl,
                 "description" => $orderInfo,
                 "paymentMethod" => "BNPL",
@@ -187,8 +193,13 @@ class Fundiin extends WC_Gateway_Fundiin
                 );
                 return $result->paymentUrl;
             }
-            wc_add_notice(__("Yêu cầu không hợp lệ", "woocommerce-gateway-fundiin"), "error");
-            throw new Exception(__("Yêu cầu không hợp lệ", "woocommerce-gateway-fundiin"));
+            wc_add_notice(
+                __("Yêu cầu không hợp lệ", "woocommerce-gateway-fundiin"),
+                "error"
+            );
+            throw new Exception(
+                __("Yêu cầu không hợp lệ", "woocommerce-gateway-fundiin")
+            );
         } catch (Exception $ex) {
             Fundiin_Logger::wr_log("ERROR AT CODE " . $ex->getMessage());
 
@@ -205,14 +216,17 @@ class Fundiin extends WC_Gateway_Fundiin
         $clientId = $this->clientId;
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
-        $siteId = $this->siteId;
+        $storeId = $this->storeId;
         $now = round(microtime(true) * 1000);
         $orderId = $clientId . "_REFUND_" . $order_id . "_" . $now;
         $transId = $order->get_transaction_id();
         if ($transId === null or !isset($transId)) {
             $error = new WP_Error(
                 "transaction_not_found",
-                __("Đơn hàng chưa được thanh toán nên không thể hoàn tiền.", "woocommerce-gateway-fundiin")
+                __(
+                    "Đơn hàng chưa được thanh toán nên không thể hoàn tiền.",
+                    "woocommerce-gateway-fundiin"
+                )
             );
             return $error;
         }
@@ -223,7 +237,10 @@ class Fundiin extends WC_Gateway_Fundiin
         ) {
             $error = new WP_Error(
                 "cannot_refund",
-                __("Hoàn tiền thất bại. Bạn phải hoàn tiền toàn bộ đơn hàng.", "woocommerce-gateway-fundiin")
+                __(
+                    "Hoàn tiền thất bại. Bạn phải hoàn tiền toàn bộ đơn hàng.",
+                    "woocommerce-gateway-fundiin"
+                )
             );
 
             return $error;
@@ -232,7 +249,10 @@ class Fundiin extends WC_Gateway_Fundiin
         if ($order->get_status() != "processing") {
             $error = new WP_Error(
                 "cannot_refund",
-                __("Đơn hàng chưa được thanh toán nên không thể hoàn tiền.", "woocommerce-gateway-fundiin")
+                __(
+                    "Đơn hàng chưa được thanh toán nên không thể hoàn tiền.",
+                    "woocommerce-gateway-fundiin"
+                )
             );
             return $error;
         }

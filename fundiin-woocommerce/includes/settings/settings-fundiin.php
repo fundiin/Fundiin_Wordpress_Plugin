@@ -83,8 +83,8 @@ $settings = [
         "desc_tip" => true,
     ],
 
-    "siteId" => [
-        "title" => __("Site ID", "woocommerce-gateway-fundiin"),
+    "storeId" => [
+        "title" => __("Store ID", "woocommerce-gateway-fundiin"),
         "type" => "text",
         "default" => "",
         "description" => __(
