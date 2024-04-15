@@ -51,6 +51,9 @@ class Fundiin extends WC_Gateway_Fundiin
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
         $storeId = $this->storeId;
+        if ($storeId === "") {
+            $storeId = null;
+        }
 
         $notifyUrl =
             $this->notifyUrl !== ""
@@ -217,6 +220,9 @@ class Fundiin extends WC_Gateway_Fundiin
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
         $storeId = $this->storeId;
+        if ($storeId == "") {
+            $storeId = null;
+        }
         $now = round(microtime(true) * 1000);
         $orderId = $clientId . "_REFUND_" . $order_id . "_" . $now;
         $transId = $order->get_transaction_id();
