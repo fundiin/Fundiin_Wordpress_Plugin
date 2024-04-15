@@ -41,7 +41,7 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
         $this->clientId = $this->get_option("clientId");
         $this->merchantId = $this->get_option("merchantId");
         $this->secretKey = $this->get_option("secretKey");
-        $this->siteId = $this->get_option("siteId");
+        $this->storeId = $this->get_option("storeId");
 
         add_action("woocommerce_update_options_payment_gateways_" . $this->id, [
             $this,
