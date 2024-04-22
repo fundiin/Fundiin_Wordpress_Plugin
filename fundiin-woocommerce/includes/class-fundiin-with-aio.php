@@ -78,10 +78,12 @@ class Fundiin extends WC_Gateway_Fundiin
                 array_push($category, $term->name);
             }
             $categoryListString = join(",", $category);
+            $newName = $_product->get_name();
+            $newName = strip_tags($newName, "");
             $gwItem = [
                 "productId" => $_product->get_id(),
-                "productName" => $_product->get_name(),
-                "description" => $_product->get_name(),
+                "productName" => $newName,
+                "description" => $newName,
                 "price" => $_product->get_sale_price(),
                 "currency" => "VND",
                 "quantity" => $values["quantity"],
@@ -102,8 +104,8 @@ class Fundiin extends WC_Gateway_Fundiin
         $customer = [
             "phoneNumber" => $phone_number,
             "email" => $order->get_billing_email(),
-            "firstName" => $order->get_billing_first_name(),
-            "lastName" => $order->get_billing_last_name(),
+            "firstName" => strip_tags($order->get_billing_first_name(), ""),
+            "lastName" => strip_tags($order->get_billing_last_name(), ""),
         ];
 
         // Assuming $order is a WooCommerce order object
