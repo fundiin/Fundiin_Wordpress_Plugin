@@ -70,5 +70,34 @@ class Fundiin_Visibility
 
         echo '<div id="script-checkout-container"></div>';
         echo '<script type="application/javascript" src="' . $host . '/merchants/checkoutjs/' . $merchantId . '.js"></script>';
+        echo "
+            <script type='text/javascript'>
+                var trackingScript = document.createElement('script');
+                trackingScript.type = 'text/javascript';
+                trackingScript.innerHTML = `
+                    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+                    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                    })(window,document,'script','dataLayer','GTM-TP47LP6K');
+                `;
+                document.head.appendChild(trackingScript);
+
+                var eventScript = document.createElement('script');
+                eventScript.type = 'text/javascript';
+                eventScript.innerHTML = `
+                    window.dataLayer = window.dataLayer || [];
+                    window.addEventListener('DOMContentLoaded', function() {
+                        window.dataLayer.push({
+                            event: 'view_checkout',
+                            event_category: 'mx_site',
+                            event_action: 'view',
+                            event_label: 'mx_checkout',
+                        });
+                    });
+                `;
+                document.body.appendChild(eventScript);
+            </script>
+        ";
     }
 }
