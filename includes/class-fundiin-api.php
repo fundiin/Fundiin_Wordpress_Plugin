@@ -1,15 +1,16 @@
 <?php
-
 class Fundiin_Api
 {
     public $logger, $helper;
 
-    private $public_key = '-----BEGIN PUBLIC KEY-----
-MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgGWLeG5fXvtBj47I6cKlF85/ydNL
-HfwZ6vVcr3nyBh0nkN5ePJamn7aTMvWF5Y6itodN92Z6oMqH/X/GBqMXx4c9S2JX
-Z5t+TWmlWo8gnGVDLT43VdnYYPYj6rsG4a9IjuFxX7m3ZIymAc+KTDNwKP/fYXWN
-YbjPP+CuaH7XNrg1AgMBAAE=
------END PUBLIC KEY-----';
+    private $public_key = '
+        -----BEGIN PUBLIC KEY-----
+        MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgGWLeG5fXvtBj47I6cKlF85/ydNL
+        HfwZ6vVcr3nyBh0nkN5ePJamn7aTMvWF5Y6itodN92Z6oMqH/X/GBqMXx4c9S2JX
+        Z5t+TWmlWo8gnGVDLT43VdnYYPYj6rsG4a9IjuFxX7m3ZIymAc+KTDNwKP/fYXWN
+        YbjPP+CuaH7XNrg1AgMBAAE=
+        -----END PUBLIC KEY-----
+    ';
 
     public function __construct()
     {
@@ -114,10 +115,6 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         return new WP_REST_Response(['status' => 'success', 'data' => $order_data], 200);
     }
 
-
-
-
-
     // Hàm chính để lấy thông tin khách hàng và đơn hàng
     public function get_users(WP_REST_Request $request)
     {
@@ -132,20 +129,20 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         // date_to: Nếu không có, lấy ngày hôm nay
         $date_to = isset($data_array['date_to']) ? $data_array['date_to'] : date('Y-m-d');
         $query = "
-        SELECT DISTINCT 
-            pm_email.meta_value AS email, 
-            pm_phone.meta_value AS phone,
-            pm_first_name.meta_value AS first_name,
-            pm_last_name.meta_value AS last_name,
-            p.ID AS post_id
-        FROM {$wpdb->prefix}postmeta pm_email
-        LEFT JOIN {$wpdb->prefix}postmeta pm_phone ON pm_email.post_id = pm_phone.post_id AND pm_phone.meta_key = '_billing_phone'
-        LEFT JOIN {$wpdb->prefix}postmeta pm_first_name ON pm_email.post_id = pm_first_name.post_id AND pm_first_name.meta_key = '_billing_first_name'
-        LEFT JOIN {$wpdb->prefix}postmeta pm_last_name ON pm_email.post_id = pm_last_name.post_id AND pm_last_name.meta_key = '_billing_last_name'
-        INNER JOIN {$wpdb->prefix}posts p ON pm_email.post_id = p.ID
-        WHERE pm_email.meta_key = '_billing_email'
-          AND p.post_type = 'shop_order'
-    ";
+            SELECT DISTINCT 
+                pm_email.meta_value AS email, 
+                pm_phone.meta_value AS phone,
+                pm_first_name.meta_value AS first_name,
+                pm_last_name.meta_value AS last_name,
+                p.ID AS post_id
+            FROM {$wpdb->prefix}postmeta pm_email
+            LEFT JOIN {$wpdb->prefix}postmeta pm_phone ON pm_email.post_id = pm_phone.post_id AND pm_phone.meta_key = '_billing_phone'
+            LEFT JOIN {$wpdb->prefix}postmeta pm_first_name ON pm_email.post_id = pm_first_name.post_id AND pm_first_name.meta_key = '_billing_first_name'
+            LEFT JOIN {$wpdb->prefix}postmeta pm_last_name ON pm_email.post_id = pm_last_name.post_id AND pm_last_name.meta_key = '_billing_last_name'
+            INNER JOIN {$wpdb->prefix}posts p ON pm_email.post_id = p.ID
+            WHERE pm_email.meta_key = '_billing_email'
+            AND p.post_type = 'shop_order'
+        ";
 
         // Thêm điều kiện lọc theo ngày
         if ($date_from) {
@@ -189,7 +186,6 @@ YbjPP+CuaH7XNrg1AgMBAAE=
 
         return new WP_REST_Response(['status' => 'success', 'data' => $user_data], 200);
     }
-
 
     public function get_products(WP_REST_Request $request)
     {
@@ -255,7 +251,6 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         return new WP_REST_Response(array('message' => 'Product not found'), 404);
     }
 
-
     private function format_customer_data($customer)
     {
         $orders = $this->get_orders_by_customer_id($customer->get_id());
@@ -296,7 +291,6 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         return $formatted_orders;
     }
 
-
     private function format_order_items($items)
     {
         $formatted_items = [];
@@ -311,7 +305,6 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         return $formatted_items;
     }
 
-
     public function get_order_by_id(WP_REST_Request $request)
     {
 
@@ -320,18 +313,21 @@ YbjPP+CuaH7XNrg1AgMBAAE=
 
         if ($order) {
             return new WP_REST_Response(['status' => 'success', 'data' => format_order_data($order)], 200);
-        }                                                                                                                               return new WP_REST_Response(array('message' => 'Order not found'), 404);
-    }
+        }
 
+        return new WP_REST_Response(array('message' => 'Order not found'), 404);
+    }
 
     private function format_order_data($order)
     {
         return array(
+            'ref_id' => $order->get_id() . '_' . $order->get_date_created()->format('Uv'),
             'order_id' => $order->get_id(),
             'order_key' => $order->get_order_key(),
             'status' => $order->get_status(),
             'date_created' => $order->get_date_created()->date('Y-m-d H:i:s'),
             'total' => $order->get_total(),
+            'currency' => $order->get_currency(),
             'payment_method' => $order->get_payment_method(),
             'payment_method_title' => $order->get_payment_method_title(),
             'transaction_id' => $order->get_transaction_id(),
@@ -382,7 +378,6 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         $merchantId = $request->get_param('merchant_id');
         $signature = $request->get_header('signature');
         $timeStamp = (int) $data_array['timestamp'];
-
 
         if (trim((string)$merchantId) !== trim((string)$merchantIdSetting)) {
             return new WP_Error(
