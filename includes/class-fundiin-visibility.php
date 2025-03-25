@@ -36,9 +36,6 @@ class Fundiin_Visibility
     {
         global $product;
 
-        $order = wc_get_order(104);
-        print_r($order->get_date_created());
-
         if ($product) {
             $product_price = (int) $product->get_price();
             $merchantId = fundiin()->settings->merchantId;
