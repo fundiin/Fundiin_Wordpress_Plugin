@@ -31,9 +31,9 @@ class Fundiin_Api
                 'merchant',
                 '/(?P<merchant_id>[A-Za-z0-9_-]+)/api/orders/(?P<order_id>\d+)',
                 array(
-                    'methods' => 'POST',
+                    'methods' => 'GET',
                     'callback' => array($this, 'get_order_by_id'),
-                    'permission_callback' => array($this, 'verify_signature'),
+                    // 'permission_callback' => array($this, 'verify_signature'),
                 )
             );
 
@@ -265,14 +265,14 @@ class Fundiin_Api
         ];
     }
 
-// Hàm lấy danh sách đơn hàng theo email khách hàng
+    // Hàm lấy danh sách đơn hàng theo email khách hàng
     private function get_orders_by_customer_email($email)
     {
         $orders = wc_get_orders(['billing_email' => $email]);
         return $this->format_orders($orders);
     }
 
-// Hàm định dạng thông tin đơn hàng
+    // Hàm định dạng thông tin đơn hàng
     private function format_orders($orders)
     {
         $formatted_orders = [];
@@ -307,12 +307,11 @@ class Fundiin_Api
 
     public function get_order_by_id(WP_REST_Request $request)
     {
-
         $order_id = $request->get_param('order_id');
         $order = wc_get_order($order_id);
 
         if ($order) {
-            return new WP_REST_Response(['status' => 'success', 'data' => format_order_data($order)], 200);
+            return new WP_REST_Response(['status' => 'success', 'data' => $this->format_order_data($order)], 200);
         }
 
         return new WP_REST_Response(array('message' => 'Order not found'), 404);
