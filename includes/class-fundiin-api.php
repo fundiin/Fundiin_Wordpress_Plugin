@@ -12,366 +12,132 @@ class Fundiin_Api
         -----END PUBLIC KEY-----
     ';
 
-    public function __construct()
-    {
+    public function __construct() {
         add_action('rest_api_init', function () {
-            // Route để lấy danh sách các đơn hàng
+            // Route for getting orders with pagination
             register_rest_route(
                 'merchant',
                 '/(?P<merchant_id>[A-Za-z0-9_-]+)/api/orders',
-                array(
-                    'methods' => 'POST',
-                    'callback' => array($this, 'get_orders'),
-                    'permission_callback' => array($this, 'verify_signature'),
-                )
+                [
+                    'methods' => 'GET',
+                    'callback' => [$this, 'get_orders'],
+                    'permission_callback' => [$this, 'verify_signature'],
+                    'args' => $this->get_collection_params(),
+                ]
             );
 
-            // Route để lấy đơn hàng theo order_id
+            // Route for getting order detail by using order_id
             register_rest_route(
                 'merchant',
                 '/(?P<merchant_id>[A-Za-z0-9_-]+)/api/orders/(?P<order_id>\d+)',
-                array(
+                [
                     'methods' => 'GET',
-                    'callback' => array($this, 'get_order_by_id'),
-                    // 'permission_callback' => array($this, 'verify_signature'),
-                )
+                    'callback' => [$this, 'get_order_by_id'],
+                    'permission_callback' => [$this, 'verify_signature'],
+                ]
             );
 
-            register_rest_route(
-                'merchant',
-                '/(?P<merchant_id>[A-Za-z0-9_-]+)/api/users',
-                array(
-                    'methods' => 'POST',
-                    'callback' => array($this, 'get_users'),
-                    'permission_callback' => array($this, 'verify_signature'),
-                )
-            );
-
+            // Route for getting products with pagination
             register_rest_route(
                 'merchant',
                 '/(?P<merchant_id>[A-Za-z0-9_-]+)/api/products',
-                array(
-                    'methods' => 'POST',
-                    'callback' => array($this, 'get_products'),
-                    'permission_callback' => array($this, 'verify_signature'),
-                )
+                [
+                    'methods' => 'GET',
+                    'callback' => [$this, 'get_products'],
+                    'permission_callback' => [$this, 'verify_signature'],
+                    'args' => $this->get_collection_params(),
+                ]
             );
 
+            // Route for getting product detail by using product_id
             register_rest_route(
                 'merchant',
-                '/(?P<merchant_id>[A-Za-z0-9_-]+)/api/products/(?P<product_id>\d+)', // Cho phép merchant_id là chuỗi
-                array(
-                    'methods' => 'POST',
-                    'callback' => array($this, 'get_product_id'),
-                    'permission_callback' => array($this, 'verify_signature'),
-                )
+                '/(?P<merchant_id>[A-Za-z0-9_-]+)/api/products/(?P<product_id>\d+)',
+                [
+                    'methods' => 'GET',
+                    'callback' => [$this, 'get_product_by_id'],
+                    'permission_callback' => [$this, 'verify_signature'],
+                ]
             );
         });
     }
 
-    public function get_orders(WP_REST_Request $request)
-    {
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
+    public function get_orders(WP_REST_Request $request) {
+        $request_params = $request->get_params();
+        $args = [
+            'page' => $request_params['page'],
+            'limit' => $request_params['limit'],
+            'order' => $request_params['order'],
+            'orderby' => $request_params['orderby'],
+            'paginate' => true,
+        ];
 
-        $limit = isset($data_array['limit']) ? $data_array['limit'] : -1;
-        $order = isset($data_array['order']) ? $data_array['order'] : 'DESC';
-        $status = isset($data_array['status']) ? $data_array['status'] : 'any';
+        $query = new WC_Order_Query($args);
+        $result = $query->get_orders();
+        $order_data = [];
 
-        $args = array(
-            'limit'    => $limit,
-            'orderby'  => 'date',
-            'order'    => $order,
-            'status'   => $status,
-        );
-
-        if (isset($data_array['date_from'])) {
-            // Kiểm tra xem giá trị có hợp lệ không, nếu không thì gán giá trị mặc định
-            $date_after = $data_array['date_from'];
-        } else {
-            // Thiết lập giá trị mặc định cho date_after, ví dụ là 30 ngày trước
-            $date_after = date('Y-m-d H:i:s', strtotime('-30 days'));
-        }
-
-        if (isset($data_array['date_to'])) {
-            // Kiểm tra xem giá trị có hợp lệ không, nếu không thì gán giá trị mặc định
-            $date_before = $data_array['date_to'];
-        } else {
-            // Thiết lập giá trị mặc định cho date_before, ví dụ là ngày hiện tại
-            $date_before = date('Y-m-d H:i:s');
-        }
-
-        $args['date_after'] = $date_after;
-        $args['date_before'] = $date_before;
-
-        // Lấy danh sách đơn hàng
-        $orders = wc_get_orders($args);
-        $order_data = array();
-
-        foreach ($orders as $order) {
+        foreach ($result->orders as $order) {
             $order_data[] = $this->format_order_data($order);
         }
 
-        return new WP_REST_Response(['status' => 'success', 'data' => $order_data], 200);
+        return new WP_REST_Response(['status' => 'success', 'data' => [
+            "orders" => $order_data,
+            "total_items" => $result->total,
+            "total_pages" => $result->max_num_pages,
+        ]], 200);
     }
 
-    // Hàm chính để lấy thông tin khách hàng và đơn hàng
-    public function get_users(WP_REST_Request $request)
-    {
-        global $wpdb;
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
-
-        $limit = isset($data_array['limit']) ? $data_array['limit'] : -1;
-        $order = isset($data_array['order']) ? $data_array['order'] : 'DESC';
-        $date_from = isset($data_array['date_from']) ? $data_array['date_from'] : date('Y-m-d', strtotime('-30 days'));
-
-        // date_to: Nếu không có, lấy ngày hôm nay
-        $date_to = isset($data_array['date_to']) ? $data_array['date_to'] : date('Y-m-d');
-        $query = "
-            SELECT DISTINCT 
-                pm_email.meta_value AS email, 
-                pm_phone.meta_value AS phone,
-                pm_first_name.meta_value AS first_name,
-                pm_last_name.meta_value AS last_name,
-                p.ID AS post_id
-            FROM {$wpdb->prefix}postmeta pm_email
-            LEFT JOIN {$wpdb->prefix}postmeta pm_phone ON pm_email.post_id = pm_phone.post_id AND pm_phone.meta_key = '_billing_phone'
-            LEFT JOIN {$wpdb->prefix}postmeta pm_first_name ON pm_email.post_id = pm_first_name.post_id AND pm_first_name.meta_key = '_billing_first_name'
-            LEFT JOIN {$wpdb->prefix}postmeta pm_last_name ON pm_email.post_id = pm_last_name.post_id AND pm_last_name.meta_key = '_billing_last_name'
-            INNER JOIN {$wpdb->prefix}posts p ON pm_email.post_id = p.ID
-            WHERE pm_email.meta_key = '_billing_email'
-            AND p.post_type = 'shop_order'
-        ";
-
-        // Thêm điều kiện lọc theo ngày
-        if ($date_from) {
-            $query .= $wpdb->prepare(" AND p.post_date >= %s", $date_from);
-        }
-        if ($date_to) {
-            $query .= $wpdb->prepare(" AND p.post_date <= %s", $date_to);
-        }
-
-        // Sắp xếp và giới hạn
-        $query .= " ORDER BY p.post_date {$order}";
-        if ($limit > 0) {
-            $query .= $wpdb->prepare(" LIMIT %d", $limit);
-        }
-
-        $results = $wpdb->get_results($query);
-
-        $user_data = [];
-        foreach ($results as $row) {
-            $contact_info = $row->phone ?: $row->email; // Ưu tiên số điện thoại, nếu không có thì dùng email
-            $user = get_user_by('email', $row->email);
-
-            if ($user) {
-                // Khách hàng đã đăng ký
-                $customer = new WC_Customer($user->ID);
-                $user_data[] = $this->format_customer_data($customer);
-            } else {
-                // Khách hàng vãng lai
-                $orders = $this->get_orders_by_customer_email($row->email);
-
-                $user_data[] = [
-                    'id' => null,
-                    'first_name' => $row->first_name ?: '',
-                    'last_name' => $row->last_name ?: '',
-                    'email' => $row->email,
-                    'phone' => $row->phone,
-                    'orders' => $orders,
-                ];
-            }
-        }
-
-        return new WP_REST_Response(['status' => 'success', 'data' => $user_data], 200);
-    }
-
-    public function get_products(WP_REST_Request $request)
-    {
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
-
-        $limit = $data && $data_array['limit'] ? $data_array['limit'] : -1;
-        $order = $data && $data_array['order'] ? $data_array['order'] : 'DESC';
-        $orderby = $data && $data_array['$orderBy'] ? $data_array['$orderBy'] : 'date';
-
-        $query = new WC_Product_Query(array(
-            'limit' => $limit,
-            'orderby' => $orderby,
-            'order' => $order,
-            'return' => 'objects',
-        ));
-
-        $products = $query->get_products();
-        $data = [];
-
-        // Xử lý dữ liệu sản phẩm
-        foreach ($products as $product) {
-            $data[] = [
-                'id' => $product->get_id(),
-                'name' => $product->get_name(),
-                'price' => $product->get_price(),
-                'regular_price' => $product->get_regular_price(),
-                'sale_price' => $product->get_sale_price(),
-                'sku' => $product->get_sku(),
-                'stock_status' => $product->get_stock_status(),
-                'categories' => $product->get_category_ids(),
-                'image' => wp_get_attachment_url($product->get_image_id()),
-            ];
-        }
-
-        return new WP_REST_Response(['status' => 'success', 'data' => $data], 200);
-    }
-
-    public function get_product_id(WP_REST_Request $request)
-    {
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
-
-        $productId = $request->get_param('product_id');
-        $product = wc_get_product($productId); // Lấy sản phẩm dựa trên ID
-
-        if ($product) {
-            $data = [
-                'id' => $product->get_id(),
-                'name' => $product->get_name(),
-                'price' => $product->get_price(),
-                'regular_price' => $product->get_regular_price(),
-                'sale_price' => $product->get_sale_price(),
-                'sku' => $product->get_sku(),
-                'stock_status' => $product->get_stock_status(),
-                'categories' => $product->get_category_ids(),
-                'image' => wp_get_attachment_url($product->get_image_id()),
-            ];
-
-            return new WP_REST_Response(['status' => 'success', 'data' => $data], 200);
-        }
-
-        return new WP_REST_Response(array('message' => 'Product not found'), 404);
-    }
-
-    private function format_customer_data($customer)
-    {
-        $orders = $this->get_orders_by_customer_id($customer->get_id());
-
-        return [
-            'id' => $customer->get_id(),
-            'first_name' => $customer->get_first_name(),
-            'last_name' => $customer->get_last_name(),
-            'email' => $customer->get_email(),
-            'phone' => $customer->get_billing_phone(),
-            'orders' => $orders,
+    public function get_products(WP_REST_Request $request) {
+        $request_params = $request->get_params();
+        $args = [
+            'page' => $request_params['page'],
+            'limit' => $request_params['limit'],
+            'order' => $request_params['order'],
+            'orderby' => $request_params['orderby'],
+            'paginate' => true,
         ];
-    }
 
-    // Hàm lấy danh sách đơn hàng theo email khách hàng
-    private function get_orders_by_customer_email($email)
-    {
-        $orders = wc_get_orders(['billing_email' => $email]);
-        return $this->format_orders($orders);
-    }
+        $result = wc_get_products($args);
+        $product_data = [];
 
-    // Hàm định dạng thông tin đơn hàng
-    private function format_orders($orders)
-    {
-        $formatted_orders = [];
-        foreach ($orders as $order) {
-            $formatted_orders[] = [
-                'id' => $order->get_id(),
-                'status' => $order->get_status(),
-                'payment_method' => $order->get_payment_method() ? $order->get_payment_method() : 'COD',
-                'payment_method_title' => $order->get_payment_method_title() ? $order->get_payment_method_title() : 'COD',
-                'total' => $order->get_total(),
-                'currency' => $order->get_currency(),
-                'date_created' => $order->get_date_created() ? $order->get_date_created()->date('Y-m-d H:i:s') : null,
-                'items' => $this->format_order_items($order->get_items()),
-            ];
+        foreach ($result->products as $product) {
+            $product_data[] = $this->format_product_data($product);
         }
-        return $formatted_orders;
+
+        return new WP_REST_Response(['status' => 'success', 'data' => [
+            "products" => $product_data,
+            "total_items" => $result->total,
+            "total_pages" => $result->max_num_pages,
+        ]], 200);
     }
 
-    private function format_order_items($items)
-    {
-        $formatted_items = [];
-        foreach ($items as $item) {
-            $formatted_items[] = [
-                'name' => $item->get_name(),
-                'quantity' => $item->get_quantity(),
-                'total' => $item->get_total(),
-                'product_id' => $item->get_product_id(),
-            ];
-        }
-        return $formatted_items;
-    }
-
-    public function get_order_by_id(WP_REST_Request $request)
-    {
+    public function get_order_by_id(WP_REST_Request $request) {
         $order_id = $request->get_param('order_id');
         $order = wc_get_order($order_id);
 
-        if ($order) {
-            return new WP_REST_Response(['status' => 'success', 'data' => $this->format_order_data($order)], 200);
+        if (!$order) {
+            return new WP_REST_Response(['message' => 'Order not found'], 404);
         }
 
-        return new WP_REST_Response(array('message' => 'Order not found'), 404);
+        return new WP_REST_Response(['status' => 'success', 'data' => $this->format_order_data($order)], 200);
     }
 
-    private function format_order_data($order)
-    {
-        return array(
-            'ref_id' => $order->get_id() . '_' . $order->get_date_created()->format('Uv'),
-            'order_id' => $order->get_id(),
-            'order_key' => $order->get_order_key(),
-            'status' => $order->get_status(),
-            'date_created' => $order->get_date_created()->date('Y-m-d H:i:s'),
-            'total' => $order->get_total(),
-            'currency' => $order->get_currency(),
-            'payment_method' => $order->get_payment_method(),
-            'payment_method_title' => $order->get_payment_method_title(),
-            'transaction_id' => $order->get_transaction_id(),
-            'billing_first_name' => $order->get_billing_first_name(),
-            'billing_last_name' => $order->get_billing_last_name(),
-            'billing_email' => $order->get_billing_email(),
-            'billing_phone' => $order->get_billing_phone(),
-            'billing_address_1' => $order->get_billing_address_1(),
-            'billing_address_2' => $order->get_billing_address_2(),
-            'billing_city' => $order->get_billing_city(),
-            'billing_postcode' => $order->get_billing_postcode(),
-            'billing_country' => $order->get_billing_country(),
-            'billing_state' => $order->get_billing_state(),
-            'shipping_first_name' => $order->get_shipping_first_name(),
-            'shipping_last_name' => $order->get_shipping_last_name(),
-            'shipping_address_1' => $order->get_shipping_address_1(),
-            'shipping_address_2' => $order->get_shipping_address_2(),
-            'shipping_city' => $order->get_shipping_city(),
-            'shipping_postcode' => $order->get_shipping_postcode(),
-            'shipping_country' => $order->get_shipping_country(),
-            'shipping_state' => $order->get_shipping_state(),
-            'items' => $this->get_order_items($order),
-        );
-    }
+    public function get_product_by_id(WP_REST_Request $request) {
+        $productId = $request->get_param('product_id');
+        $product = wc_get_product($productId);
 
-    private function get_order_items($order)
-    {
-        $items = array();
-        foreach ($order->get_items() as $item) {
-            $items[] = array(
-                'product_id' => $item->get_product_id(),
-                'product_name' => $item->get_name(),
-                'quantity' => $item->get_quantity(),
-                'total' => $item->get_total(),
-                'price' => $item->get_subtotal(),
-            );
+        if (!$product) {
+            return new WP_REST_Response(['message' => 'Product not found'], 404);
         }
-        return $items;
+
+        return new WP_REST_Response(['status' => 'success', 'data' => $this->format_product_data($product)], 200);
     }
 
-    public function verify_signature(WP_REST_Request $request)
-    {
+    public function verify_signature(WP_REST_Request $request) {
         $fundiin = fundiin()->fundiin;
         $merchantIdSetting = $fundiin->merchantId;
         $data = $request->get_body();
+
         $data_array = json_decode($data, true);
         $public_key = $this->public_key;
         $merchantId = $request->get_param('merchant_id');
@@ -382,21 +148,25 @@ class Fundiin_Api
             return new WP_Error(
                 'INVALID_MERCHANT_ID',
                 'The merchant is not registered.',
-                array('status' => 400)
+                ['status' => 400]
             );
         }
 
         if (!$timeStamp) {
             return new WP_Error(
                 'INVALID_TIMESTAMP',
-                $timeStamp . ' Dữ liệu không hợp lệ',
-                array('status' => 400)
+                $timeStamp . ' is invalid.',
+                ['status' => 400]
             );
         }
 
         $is_valid = $this->verify_rsa_signature($data, $signature, $public_key);
         if (!$is_valid) {
-            return new WP_Error('INVALID_SIGNATURE', 'Chữ ký không hợp lệ', ['signature' => $signature, 'data' => $data, 'status' => 401]);
+            return new WP_Error(
+                'INVALID_SIGNATURE',
+                'The signature is invalid.',
+                ['signature' => $signature, 'data' => $data, 'status' => 401]
+            );
         }
 
         $date = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
@@ -406,18 +176,122 @@ class Fundiin_Api
 
         if ($timeStamp < $current_time_millis) {
             return new WP_Error(
-                'INVALID_SIGNATURE',
-                'Chữ ký không hợp lệ',
-                array('status' => 400)
+                'EXPIRED_SIGNATURE',
+                'The signature is expired.',
+                ['status' => 401]
             );
         }
 
         return true;
     }
 
-    private function verify_rsa_signature($data, $signature, $public_key)
-    {
+    public function get_collection_params() {
+        $params = [];
+
+        $params['page'] = [
+			'type'              => 'integer',
+			'default'           => 1,
+			'sanitize_callback' => 'absint',
+			'validate_callback' => 'rest_validate_request_arg',
+			'minimum'           => 1,
+		];
+
+		$params['limit'] = [
+			'type'              => 'integer',
+			'default'           => 10,
+			'minimum'           => 0,
+			'maximum'           => 100,
+			'sanitize_callback' => 'absint',
+			'validate_callback' => 'rest_validate_request_arg',
+		];
+
+		$params['order'] = [
+			'type'              => 'string',
+			'default'           => 'desc',
+			'enum'              => ['asc', 'desc'],
+			'validate_callback' => 'rest_validate_request_arg',
+		];
+
+		$params['orderby'] = [
+			'type'              => 'string',
+			'default'           => 'date',
+			'enum'              => ['date'],
+			'validate_callback' => 'rest_validate_request_arg',
+		];
+
+        return $params;
+    }
+
+    private function verify_rsa_signature($data, $signature, $public_key) {
         $is_valid = openssl_verify($data, base64_decode($signature), $public_key, OPENSSL_ALGO_SHA256);
         return $is_valid === 1;
+    }
+
+    private function format_order_data($order) {
+        $base_data = $order->get_base_data();
+
+        return [
+            'ref_id' => $base_data['id'] . '_' . $base_data['date_created']->format('U'),
+            'order_id' => $base_data['id'],
+            'status' => $base_data['status'],
+            'currency' => $base_data['currency'],
+            'order_key' => $base_data['order_key'],
+            'prices_include_tax' => $base_data['prices_include_tax'],
+            'date_created' => $base_data['date_created']->date('Y-m-d H:i:s'),
+            'date_modified' => $base_data['date_modified']->date('Y-m-d H:i:s'),
+            'discount' => [
+                'total' => $base_data['discount_total'],
+                'tax' => $base_data['discount_tax'],
+            ],
+            'shipping_price' => [
+                'total' => $base_data['shipping_total'],
+                'tax' => $base_data['shipping_tax']
+            ],
+            'cart_tax' => $base_data['cart_tax'],
+            'total' => $base_data['total'],
+            'total_tax' => $base_data['total_tax'],
+            'customer_info' => [
+                'id' => $base_data['customer_id'],
+                'ip_address' => $base_data['customer_ip_address'],
+                'user_agent' => $base_data['customer_user_agent'],
+            ],
+            'billing_info' => $base_data['billing'],
+            'shipping_info' => $base_data['shipping'],
+            'payment_info' => [
+                'method' => $base_data['payment_method'],
+                'title' => $base_data['payment_method_title'],
+            ],
+            'transaction_id' => $base_data['transaction_id'],
+            'created_via' => $base_data['created_via'],
+            'items' => $this->get_order_items($order),
+        ];
+    }
+
+    private function get_order_items($order) {
+        $items = [];
+        foreach ($order->get_items() as $item) {
+            $items[] = [
+                'product_id' => $item->get_product_id(),
+                'product_name' => $item->get_name(),
+                'quantity' => $item->get_quantity(),
+                'total' => $item->get_total(),
+                'price' => $item->get_subtotal(),
+            ];
+        }
+        return $items;
+    }
+
+    private function format_product_data($product) {
+        return [
+            'id' => $product->get_id(),
+            'name' => $product->get_name(),
+            'price' => $product->get_price(),
+            'regular_price' => $product->get_regular_price(),
+            'sale_price' => $product->get_sale_price(),
+            'sku' => $product->get_sku(),
+            'stock_status' => $product->get_stock_status(),
+            'categories' => $product->get_category_ids(),
+            'image' => wp_get_attachment_url($product->get_image_id()),
+        ];
     }
 }
