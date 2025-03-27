@@ -3,14 +3,12 @@ class Fundiin_Api
 {
     public $logger, $helper;
 
-    private $public_key = '
-        -----BEGIN PUBLIC KEY-----
-        MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgGWLeG5fXvtBj47I6cKlF85/ydNL
-        HfwZ6vVcr3nyBh0nkN5ePJamn7aTMvWF5Y6itodN92Z6oMqH/X/GBqMXx4c9S2JX
-        Z5t+TWmlWo8gnGVDLT43VdnYYPYj6rsG4a9IjuFxX7m3ZIymAc+KTDNwKP/fYXWN
-        YbjPP+CuaH7XNrg1AgMBAAE=
-        -----END PUBLIC KEY-----
-    ';
+    private $public_key = '-----BEGIN PUBLIC KEY-----
+MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgGWLeG5fXvtBj47I6cKlF85/ydNL
+HfwZ6vVcr3nyBh0nkN5ePJamn7aTMvWF5Y6itodN92Z6oMqH/X/GBqMXx4c9S2JX
+Z5t+TWmlWo8gnGVDLT43VdnYYPYj6rsG4a9IjuFxX7m3ZIymAc+KTDNwKP/fYXWN
+YbjPP+CuaH7XNrg1AgMBAAE=
+-----END PUBLIC KEY-----';
 
     public function __construct() {
         add_action('rest_api_init', function () {
