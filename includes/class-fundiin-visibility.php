@@ -69,14 +69,35 @@ class Fundiin_Visibility
     }
 
     public function fundiin_in_checkout() {
+        global $wpdb;
+
         $merchantId = fundiin()->settings->merchantId;
         $host = fundiin()->settings->get_fundiin_host();
         $cart_items = '';
+        $order_id = '';
+        $ref_id = '';
+        $query = "
+            SELECT o.id
+            FROM {$wpdb->prefix}wc_order_operational_data od
+            RIGHT JOIN {$wpdb->prefix}wc_orders o ON od.order_id = o.id
+            WHERE od.cart_hash = '" . WC()->cart->get_cart_hash() . "'
+        ";
+        $query_result = $wpdb->get_results($query);
+
+        if (count($query_result) > 0) {
+            $order_id = $query_result[0]->id;
+        }
+
+        if (!empty($order_id)) {
+            $order = wc_get_order($order_id);
+            $ref_id = $order->get_id() . '_' . $order->get_date_created()->format('U');
+        }
 
         foreach (WC()->cart->cart_contents as $cart_item) {
             $cart_items .= '{' .
                 'id:' . $cart_item['data']->id . ',' .
                 'name: "' . $cart_item['data']->name . '",' .
+                'variantId: ' . $cart_item['variation_id'] . ',' .
                 'price:' . $cart_item['data']->price . ',' .
                 'regularPrice:' . $cart_item['data']->regular_price . ',' .
                 'quantity:' . $cart_item['quantity'] . ',' .
@@ -89,7 +110,10 @@ class Fundiin_Visibility
         echo '
             <script type="text/javascript">
                 var fundiinCheckoutConfig = {
-                    data: { cartItems: [' . $cart_items . '] },
+                    data: {
+                        cartItems: [' . $cart_items . '],
+                        ref_id: "' . $ref_id . '",
+                    },
                 };
             </script>
         ';
