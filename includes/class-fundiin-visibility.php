@@ -79,6 +79,7 @@ class Fundiin_Visibility
                 'name: "' . $cart_item['data']->name . '",' .
                 'price:' . $cart_item['data']->price . ',' .
                 'regularPrice:' . $cart_item['data']->regular_price . ',' .
+                'quantity:' . $cart_item['quantity'] . ',' .
                 'slug: "' . $cart_item['data']->slug . '",' .
                 'sku: "' . $cart_item['data']->sku . '"' .
             '},';
