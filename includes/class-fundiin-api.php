@@ -158,25 +158,23 @@ YbjPP+CuaH7XNrg1AgMBAAE=
             );
         }
 
+        $current_date = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
+        $current_timestamp = $current_date->format('Uv');
+
+        if (($current_timestamp - $timeStamp) - (10 * 60 * 1000) >= 0) {
+            return new WP_Error(
+                'EXPIRED_SIGNATURE',
+                'The signature is expired.',
+                ['status' => 401]
+            );
+        }
+
         $is_valid = $this->verify_rsa_signature($data, $signature, $public_key);
         if (!$is_valid) {
             return new WP_Error(
                 'INVALID_SIGNATURE',
                 'The signature is invalid.',
                 ['signature' => $signature, 'data' => $data, 'status' => 401]
-            );
-        }
-
-        $date = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
-        $milli_seconds = (int)$date->format('u') / 1000;
-        $timestamp_seconds = $date->getTimestamp();
-        $current_time_millis = $timestamp_seconds * 1000 + $milli_seconds;
-
-        if ($timeStamp < $current_time_millis) {
-            return new WP_Error(
-                'EXPIRED_SIGNATURE',
-                'The signature is expired.',
-                ['status' => 401]
             );
         }
 
