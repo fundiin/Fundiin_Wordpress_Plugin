@@ -83,13 +83,18 @@ class Fundiin_Visibility
             WHERE od.cart_hash = '" . WC()->cart->get_cart_hash() . "'
         ";
         $query_result = $wpdb->get_results($query);
+        print_r($query_result);
 
         if (count($query_result) > 0) {
             $order_id = $query_result[0]->id;
+            print_r($order_id);
         }
 
         if (!empty($order_id)) {
             $order = wc_get_order($order_id);
+            echo '<pre>';
+            print_r($order);
+            echo '<pre>';
             $ref_id = $order->get_id() . '_' . $order->get_date_created()->format('U');
         }
 
