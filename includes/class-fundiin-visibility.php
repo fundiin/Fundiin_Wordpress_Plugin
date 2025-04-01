@@ -71,24 +71,24 @@ class Fundiin_Visibility
     public function fundiin_in_checkout() {
         $merchantId = fundiin()->settings->merchantId;
         $host = fundiin()->settings->get_fundiin_host();
-        $cart_items = [];
+        $cart_items = '';
 
         foreach (WC()->cart->cart_contents as $cart_item) {
-            $cart_items[] = [
-                'id' => $cart_item['data']->id,
-                'name' => $cart_item['data']->name,
-                'price' => $cart_item['data']->price,
-                'regularPrice' => $cart_item['data']->regular_price,
-                'slug' => $cart_item['data']->slug,
-                'sku' => $cart_item['data']->sku,
-            ];
+            $cart_items .= '{' .
+                'id:' . $cart_item['data']->id . ',' .
+                'name: "' . $cart_item['data']->name . '",' .
+                'price:' . $cart_item['data']->price . ',' .
+                'regularPrice:' . $cart_item['data']->regular_price . ',' .
+                'slug: "' . $cart_item['data']->slug . '",' .
+                'sku: "' . $cart_item['data']->sku . '"' .
+            '},';
         }
 
         echo '<div id="script-checkout-container"></div>';
         echo '
             <script type="text/javascript">
                 var fundiinCheckoutConfig = {
-                    data: { cartItems: ' . $cart_items . ' },
+                    data: { cartItems: [' . $cart_items . '] },
                 };
             </script>
         ';
