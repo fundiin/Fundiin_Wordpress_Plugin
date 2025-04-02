@@ -45,7 +45,7 @@ class Fundiin_Visibility
                     };
                 </script>
             ';
-            echo '<script type="application/javascript" async src="' . $host . '/merchants/productdetailjs/' . $merchantId . '.js"></script>';
+            echo '<script type="application/javascript" defer src="' . $host . '/merchants/productdetailjs/' . $merchantId . '.js"></script>';
         }
     }
 
@@ -64,7 +64,7 @@ class Fundiin_Visibility
                     };
                 </script>
             ';
-            echo '<script type="application/javascript" async src="' . $host . '/merchants/cartjs/' . $merchantId . '.js"></script>';
+            echo '<script type="application/javascript" defer src="' . $host . '/merchants/cartjs/' . $merchantId . '.js"></script>';
         }
     }
 
@@ -123,6 +123,6 @@ class Fundiin_Visibility
                 };
             </script>
         ';
-        echo '<script type="application/javascript" src="' . $host . '/merchants/checkoutjs/' . $merchantId . '.js"></script>';
+        echo '<script type="application/javascript" defer src="' . $host . '/merchants/checkoutjs/' . $merchantId . '.js"></script>';
     }
 }
