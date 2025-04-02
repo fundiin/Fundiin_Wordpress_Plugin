@@ -112,7 +112,9 @@ class Fundiin_Visibility
                 var fundiinCheckoutConfig = {
                     data: {
                         cartItems: [' . $cart_items . '],
-                        ref_id: "' . $ref_id . '",
+                        referenceId: "' . $ref_id . '",
+                        orderId: "' . $order_id . '",
+                        cartHash: "' . WC()-cart->get_cart_hash() . '",
                     },
                 };
             </script>
