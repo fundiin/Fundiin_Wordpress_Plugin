@@ -5,18 +5,12 @@ if (!defined('ABSPATH')) {
 
 class Fundiin_Visibility
 {
-    private $action_registered = false;
-
     function __construct() {
         $this->register_action();
     }
 
     function register_action() {
-        if (!$this->action_registered) {
-            $this->add_to_single_product();
-            $this->action_registered = true;
-        }
-
+        $this->add_to_single_product();
         $this->add_to_cart_page();
     }
 
@@ -25,7 +19,7 @@ class Fundiin_Visibility
     }
 
     public function add_to_cart_page() {
-        add_action('woocommerce_proceed_to_checkout', array($this, 'fundiin_price_in_cart_page'), 20);
+        add_action('woocommerce_proceed_to_checkout', 'fundiin_price_in_cart_page', 5);
     }
 
     public function fundiin_price_in_product_single() {
