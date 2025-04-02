@@ -73,6 +73,7 @@ class Fundiin_Visibility
 
         $merchantId = fundiin()->settings->merchantId;
         $host = fundiin()->settings->get_fundiin_host();
+        $cart_hash = WC()->cart->get_cart_hash();
         $cart_items = '';
         $order_id = '';
         $ref_id = '';
@@ -80,7 +81,7 @@ class Fundiin_Visibility
             SELECT o.id
             FROM {$wpdb->prefix}wc_order_operational_data od
             RIGHT JOIN {$wpdb->prefix}wc_orders o ON od.order_id = o.id
-            WHERE od.cart_hash = '" . WC()->cart->get_cart_hash() . "'
+            WHERE od.cart_hash = '" . $cart_hash . "'
         ";
         $query_result = $wpdb->get_results($query);
 
@@ -114,7 +115,7 @@ class Fundiin_Visibility
                         cartItems: [' . $cart_items . '],
                         referenceId: "' . $ref_id . '",
                         orderId: "' . $order_id . '",
-                        cartHash: "' . WC()-cart->get_cart_hash() . '",
+                        cartHash: "' . $cart_hash . '",
                     },
                 };
             </script>
