@@ -41,7 +41,6 @@ class Fundiin_Plugin
      *
      * @var string
      */
-
     public $includes_path;
 
     /**
@@ -49,8 +48,14 @@ class Fundiin_Plugin
      *
      * @var string
      */
+    public $domain;
 
-     public $domain;
+    /**
+     * Slug of payment gateway.
+     *
+     * @var string
+     */
+    public $slug;
 
     /**
      * @var Fundiin_Settings
@@ -95,6 +100,7 @@ class Fundiin_Plugin
         $this->plugin_url = trailingslashit(plugin_dir_url($this->file));
         $this->includes_path = $this->plugin_path . trailingslashit('includes');
         $this->domain = 'woocommerce-fundiin-gateway';
+        $this->slug = 'WC_Fundiin_Gateway';
     }
 
     public function run() {
@@ -153,8 +159,7 @@ class Fundiin_Plugin
         $this->visibility = new Fundiin_Visibility();
         $this->gateway_loader = new Fundiin_Gateway_Loader();
         $this->api = new Fundiin_Api();
-
-        $this->fundiin = new Fundiin();
+        $this->fundiin = new WC_Fundiin_Gateway();
         $this->add_cors_plugin();
     }
 
@@ -175,9 +180,7 @@ class Fundiin_Plugin
      * Link to settings screen.
      */
     public function get_admin_setting_link() {
-        $section_slug = 'fundiin';
-
-        return admin_url('admin.php?page=wc-settings&tab=checkout&section=' . $section_slug);
+        return admin_url('admin.php?page=wc-settings&tab=checkout&section=' . $this->slug);
     }
 
 

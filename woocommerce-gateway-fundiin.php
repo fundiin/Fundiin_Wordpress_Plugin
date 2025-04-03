@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Fundiin Payment Gateway for WooCommerce
  * Description: Buy Now Pay Later Service for WooCommerce by Fundiin
- * Version: 2.0.7
+ * Version: 2.0.8
  * Author: FUNDIIN JSC
  * Author URI: https://fundiin.vn
  * License: GNU General Public License v3.0

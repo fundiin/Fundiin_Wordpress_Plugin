@@ -28,7 +28,7 @@ class Fundiin_Gateway_Loader
      * @return array Payment methods
      */
     public function add_fundiin_payment_gateway($methods) {
-        $methods[] = 'WC_Fundiin_Gateway';
+        $methods[] = fundiin()->slug;
         return $methods;
     }
 }

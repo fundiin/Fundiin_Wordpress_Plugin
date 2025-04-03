@@ -4,7 +4,7 @@ if (!defined("ABSPATH")) {
     exit(); // Exit if accessed directly
 }
 
-class Fundiin extends WC_Gateway_Fundiin
+class WC_Fundiin_Gateway extends WC_Gateway_Fundiin
 {
     public function __construct()
     {
