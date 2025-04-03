@@ -24,12 +24,9 @@ class Fundiin_Visibility
 
     public function fundiin_price_in_product_single() {
         global $product;
+        $product_price = (int) $product->get_price();
 
-        if ($product) {
-            $product_price = (int) $product->get_price();
-            $merchantId = fundiin()->settings->merchantId;
-            $host = fundiin()->settings->get_fundiin_host();
-
+        if (!!$product && is_int($product_price)) {
             echo '<div id="script-general-container"></div>';
             echo '
                 <script type="text/javascript">
@@ -39,7 +36,7 @@ class Fundiin_Visibility
                     };
                 </script>
             ';
-            echo '<script type="application/javascript" defer src="' . $host . '/merchants/productdetailjs/' . $merchantId . '.js"></script>';
+            echo '<script type="application/javascript" defer src="' . $this->generateGatewayUrl('productdetailjs') . '"></script>';
         }
     }
 
@@ -47,8 +44,6 @@ class Fundiin_Visibility
         $cart_price = WC()->cart->total;
 
         if ($cart_price) {
-            $merchantId = fundiin()->settings->merchantId;
-            $host = fundiin()->settings->get_fundiin_host();
             echo '<div id="script-general-container"></div>';
             echo '
                 <script type="text/javascript">
@@ -58,15 +53,37 @@ class Fundiin_Visibility
                     };
                 </script>
             ';
-            echo '<script type="application/javascript" defer src="' . $host . '/merchants/cartjs/' . $merchantId . '.js"></script>';
+            echo '<script type="application/javascript" defer src="' . $this->generateGatewayUrl('cartjs') . '"></script>';
         }
     }
 
     public function fundiin_in_checkout() {
-        global $wpdb;
+        $checkoutConfig = $this->checkoutConfigFactory();
 
+        echo '<div id="script-checkout-container"></div>';
+        echo '
+            <script type="text/javascript">
+                var fundiinCheckoutConfig = {
+                    data: {
+                        cartItems: [' . $checkoutConfig['cart_items'] . '],
+                        referenceId: "' . $checkoutConfig['ref_id'] . '",
+                        orderId: "' . $checkoutConfig['order_id'] . '",
+                    },
+                };
+            </script>
+        ';
+        echo '<script type="application/javascript" defer src="' . $this->generateGatewayUrl('checkoutjs') . '"></script>';
+    }
+
+    private function generateGatewayUrl($page) {
         $merchantId = fundiin()->settings->merchantId;
         $host = fundiin()->settings->get_fundiin_host();
+        return $host . '/merchants/' . $page . '/' . $merchantId . '.js';
+    }
+
+    private function checkoutConfigFactory() {
+        global $wpdb;
+
         $cart_hash = WC()->cart->get_cart_hash();
         $cart_items = '';
         $query = '';
@@ -80,6 +97,7 @@ class Fundiin_Visibility
                 RIGHT JOIN {$wpdb->prefix}wc_orders o ON od.order_id = o.id
                 WHERE od.cart_hash = '" . $cart_hash . "'
                 ORDER BY o.date_created_gmt desc
+                LIMIT 1
             ";
             $query_result = $wpdb->get_results($query);
 
@@ -106,18 +124,10 @@ class Fundiin_Visibility
             '},';
         }
 
-        echo '<div id="script-checkout-container"></div>';
-        echo '
-            <script type="text/javascript">
-                var fundiinCheckoutConfig = {
-                    data: {
-                        cartItems: [' . $cart_items . '],
-                        referenceId: "' . $ref_id . '",
-                        orderId: "' . $order_id . '",
-                    },
-                };
-            </script>
-        ';
-        echo '<script type="application/javascript" defer src="' . $host . '/merchants/checkoutjs/' . $merchantId . '.js"></script>';
+        return [
+            'cart_items' => $cart_items,
+            'ref_id' => $ref_id,
+            'order_id' => $order_id,
+        ];
     }
 }
