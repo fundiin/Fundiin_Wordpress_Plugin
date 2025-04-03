@@ -20,22 +20,21 @@
  * Tầng 7, Tòa nhà Lottery, số 77, đường Trần Nhân Tôn, Phường 09, Quận 5, Thành phố Hồ Chí Minh, Việt Nam
  */
 
-if (!defined("ABSPATH")) {
+if (!defined('ABSPATH')) {
     exit();
 }
 
-define("WC_GATEWAY_FUNDIIN_VERSION", "2.0.7");
+define('WC_GATEWAY_FUNDIIN_VERSION', '2.0.7');
 
-if (!defined("FUNDIIN_PLUGIN_FILE")) {
-    define("FUNDIIN_PLUGIN_FILE", __FILE__);
+if (!defined('FUNDIIN_PLUGIN_FILE')) {
+    define('FUNDIIN_PLUGIN_FILE', __FILE__);
 }
 
-function fundiin()
-{
+function fundiin() {
     static $plugin;
 
     if (!isset($plugin)) {
-        require_once "includes/class-fundiin-plugin.php";
+        require_once 'includes/class-fundiin-plugin.php';
 
         $plugin = new Fundiin_Plugin(__FILE__, WC_GATEWAY_FUNDIIN_VERSION);
     }

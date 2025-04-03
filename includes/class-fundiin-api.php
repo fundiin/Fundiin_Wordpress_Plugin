@@ -79,9 +79,9 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         }
 
         return new WP_REST_Response(['status' => 'success', 'data' => [
-            "orders" => $order_data,
-            "total_items" => $result->total,
-            "total_pages" => $result->max_num_pages,
+            'orders' => $order_data,
+            'total_items' => $result->total,
+            'total_pages' => $result->max_num_pages,
         ]], 200);
     }
 
@@ -103,9 +103,9 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         }
 
         return new WP_REST_Response(['status' => 'success', 'data' => [
-            "products" => $product_data,
-            "total_items" => $result->total,
-            "total_pages" => $result->max_num_pages,
+            'products' => $product_data,
+            'total_items' => $result->total,
+            'total_pages' => $result->max_num_pages,
         ]], 200);
     }
 

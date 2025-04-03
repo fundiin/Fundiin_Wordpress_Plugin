@@ -11,28 +11,24 @@ class Fundiin_Gateway_Loader
     /**
      * Constructor
      */
-    public function __construct()
-    {
+    public function __construct() {
         $includes_path = fundiin()->includes_path;
 
         require_once $includes_path . 'abstracts/abstract-fundiin.php';
         require_once $includes_path . 'class-fundiin-with-aio.php';
 
-        add_filter('woocommerce_payment_gateways', array($this, 'payment_gateways'));
+        add_filter('woocommerce_payment_gateways', [$this, 'add_fundiin_payment_gateway']);
     }
 
     /**
-     * Register the Fundiin payment methods.
+     * Register the Fundiin Gateway.
      *
      * @param array $methods Payment methods.
      *
      * @return array Payment methods
      */
-    public function payment_gateways($methods)
-    {
-
-        $methods[] = 'Fundiin';
-
+    public function add_fundiin_payment_gateway($methods) {
+        $methods[] = 'WC_Fundiin_Gateway';
         return $methods;
     }
 }
