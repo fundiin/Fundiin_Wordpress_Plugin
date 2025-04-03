@@ -15,11 +15,11 @@ class Fundiin_Visibility
     }
 
     public function add_to_single_product() {
-        add_action('woocommerce_before_add_to_cart_form', array($this, 'fundiin_price_in_product_single'), 13);
+        add_action('woocommerce_before_add_to_cart_form', [$this, 'fundiin_price_in_product_single'], 13);
     }
 
     public function add_to_cart_page() {
-        add_action('woocommerce_proceed_to_checkout', 'fundiin_price_in_cart_page', 5);
+        add_action('woocommerce_proceed_to_checkout', [$this, 'fundiin_price_in_cart_page'], 5);
     }
 
     public function fundiin_price_in_product_single() {
@@ -79,6 +79,7 @@ class Fundiin_Visibility
                 FROM {$wpdb->prefix}wc_order_operational_data od
                 RIGHT JOIN {$wpdb->prefix}wc_orders o ON od.order_id = o.id
                 WHERE od.cart_hash = '" . $cart_hash . "'
+                ORDER BY o.date_created_gmt desc
             ";
             $query_result = $wpdb->get_results($query);
 
