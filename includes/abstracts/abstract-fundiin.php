@@ -47,11 +47,11 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
     {
         $this->id = "fundiin";
         $this->has_fields = false;
-        $this->order_button_text = __("Mua trước trả sau", "woocommerce-gateway-fundiin");
-        $this->method_title = __("Fundiin Payment Gateway", "woocommerce-gateway-fundiin");
+        $this->order_button_text = __("Mua trước trả sau", "woocommerce-fundiin-gateway");
+        $this->method_title = __("Fundiin Payment Gateway", "woocommerce-fundiin-gateway");
         $this->method_description = __(
             "Thanh toán trả sau cùng Fundiin",
-            "woocommerce-gateway-fundiin"
+            "woocommerce-fundiin-gateway"
         );
 
         $this->supports = ["products", "refunds"];
@@ -61,8 +61,8 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
         $this->init_settings();
 
         // Define user set variables
-        $this->title = __("Thanh toán trả sau cùng Fundiin", "woocommerce-gateway-fundiin");
-        $this->description = __("Thanh toán trả sau cùng Fundiin", "woocommerce-gateway-fundiin");
+        $this->title = __("Thanh toán trả sau cùng Fundiin", "woocommerce-fundiin-gateway");
+        $this->description = __("Thanh toán trả sau cùng Fundiin", "woocommerce-fundiin-gateway");
         $this->enabled = $this->get_option("enabled");
         $this->environment = $this->get_option("environment", "test");
         $this->merchantName = $this->get_option("merchant_name");

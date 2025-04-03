@@ -8,7 +8,7 @@
  * Author URI: https://fundiin.vn
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain: woocommerce-gateway-fundiin
+ * Text Domain: woocommerce-fundiin-gateway
  * Domain Path: /
  */
 /**
@@ -24,7 +24,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-define('WC_GATEWAY_FUNDIIN_VERSION', '2.0.7');
+define('WC_GATEWAY_FUNDIIN_VERSION', '2.0.8');
 
 if (!defined('FUNDIIN_PLUGIN_FILE')) {
     define('FUNDIIN_PLUGIN_FILE', __FILE__);

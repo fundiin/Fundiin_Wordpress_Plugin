@@ -13,8 +13,7 @@ if (!class_exists('Fundiin_Logger')) {
          * @since 4.0.0
          * @version 4.0.0
          */
-        public static function wr_log($message)
-        {
+        public static function wr_log($message) {
             if (!class_exists('WC_Logger')) {
                 return;
             }
@@ -23,7 +22,8 @@ if (!class_exists('Fundiin_Logger')) {
                 return;
             }
 
-            $log_file_name = "fundiin-payment-log";
+            $log_file_name = 'fundiin-payment-log';
+
             if (empty(self::$logger)) {
                 self::$logger = wc_get_logger();
             }
@@ -33,8 +33,7 @@ if (!class_exists('Fundiin_Logger')) {
             self::$logger->debug($log_entry, ['source' => $log_file_name]);
         }
 
-        public static function wh_log($log_msg)
-        {
+        public static function wh_log($log_msg) {
             try {
                 if (!class_exists('WC_Logger')) {
                     return;
@@ -55,8 +54,7 @@ if (!class_exists('Fundiin_Logger')) {
             }
         }
 
-        private static function get_can_write_log()
-        {
+        private static function get_can_write_log() {
             return true;
         }
     }

@@ -67,7 +67,7 @@ class Fundiin extends WC_Gateway_Fundiin
         $now = round(microtime(true) * 1000);
 
         $orderInfo =
-            __("Thanh toán đơn hàng ", "woocommerce-gateway-fundiin") .
+            __("Thanh toán đơn hàng ", "woocommerce-fundiin-gateway") .
             $this->merchantName;
         $items = WC()->cart->get_cart();
         $gwItems = [];
@@ -198,7 +198,7 @@ class Fundiin extends WC_Gateway_Fundiin
                     "Error message at request " . $error_message
                 );
                 wc_add_notice(
-                    __($error_message, "woocommerce-gateway-fundiin"),
+                    __($error_message, "woocommerce-fundiin-gateway"),
                     "error"
                 );
 
@@ -224,11 +224,11 @@ class Fundiin extends WC_Gateway_Fundiin
                 return $result->paymentUrl;
             }
             wc_add_notice(
-                __("Yêu cầu không hợp lệ", "woocommerce-gateway-fundiin"),
+                __("Yêu cầu không hợp lệ", "woocommerce-fundiin-gateway"),
                 "error"
             );
             throw new Exception(
-                __("Yêu cầu không hợp lệ", "woocommerce-gateway-fundiin")
+                __("Yêu cầu không hợp lệ", "woocommerce-fundiin-gateway")
             );
         } catch (Exception $ex) {
             Fundiin_Logger::wr_log("ERROR AT CODE " . $ex->getMessage());
@@ -255,7 +255,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 "transaction_not_found",
                 __(
                     "Đơn hàng chưa được thanh toán nên không thể hoàn tiền.",
-                    "woocommerce-gateway-fundiin"
+                    "woocommerce-fundiin-gateway"
                 )
             );
             return $error;
@@ -269,7 +269,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 "cannot_refund",
                 __(
                     "Hoàn tiền thất bại. Bạn phải hoàn tiền toàn bộ đơn hàng.",
-                    "woocommerce-gateway-fundiin"
+                    "woocommerce-fundiin-gateway"
                 )
             );
 
@@ -281,7 +281,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 "cannot_refund",
                 __(
                     "Đơn hàng chưa được thanh toán nên không thể hoàn tiền.",
-                    "woocommerce-gateway-fundiin"
+                    "woocommerce-fundiin-gateway"
                 )
             );
             return $error;
@@ -316,7 +316,7 @@ class Fundiin extends WC_Gateway_Fundiin
             if (is_wp_error($response)) {
                 $error_message = $response->get_error_message();
                 wc_add_notice(
-                    __($error_message, "woocommerce-gateway-fundiin"),
+                    __($error_message, "woocommerce-fundiin-gateway"),
                     "error"
                 );
                 return false;
@@ -325,7 +325,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 if ($result->resultStatus != "APPROVED") {
                     wc_add_notice(
                         $result->resultMsg,
-                        "woocommerce-gateway-fundiin"
+                        "woocommerce-fundiin-gateway"
                     );
                     $error = new WP_Error("cannot_refund", $result->resultMsg);
 
@@ -335,7 +335,7 @@ class Fundiin extends WC_Gateway_Fundiin
                     sprintf(
                         __(
                             "Đơn hàng đã hoàn tiền số tiền %s qua Fundiin.",
-                            "woocommerce-gateway-fundiin"
+                            "woocommerce-fundiin-gateway"
                         ),
                         wc_price($amount)
                     )

@@ -9,19 +9,16 @@ if (!defined('ABSPATH')) {
  */
 class Fundiin_Response
 {
-    public function __construct()
-    {
+    public function __construct() {
         $this->response_action();
     }
 
-    public function response_action()
-    {
+    public function response_action() {
         add_action('wp_ajax_fundiin_payment_response_return', array($this, 'fundiin_handle_response_return'));
         add_action('rest_api_init', array($this, 'register_notify_api'));
     }
 
-    public function register_notify_api()
-    {
+    public function register_notify_api() {
         $fundiin = fundiin()->fundiin;
         $clientId = $fundiin->clientId;
 
@@ -32,18 +29,15 @@ class Fundiin_Response
                 'methods' => 'POST',
                 'callback' => array($this, 'check_fundiin_notify'),
                 'permission_callback' => '__return_true',
-
             ),
-
         );
-
     }
-    public function check_enough_fields_confirm_return()
-    {
+
+    public function check_enough_fields_confirm_return() {
         if (
-            !isset ($_GET['referenceId']) ||
-            !isset ($_GET['message']) ||
-            !isset ($_GET['paymentStatus'])
+            !isset($_GET['referenceId']) ||
+            !isset($_GET['message']) ||
+            !isset($_GET['paymentStatus'])
         ) {
             return false;
         }
@@ -54,22 +48,21 @@ class Fundiin_Response
      * Receive return param from fundiin
      * Please do not edit if not necessary (This function will impact to your WooCommerce order)
      */
-    public function fundiin_handle_response_return()
-    {
+    public function fundiin_handle_response_return() {
         if (!$this->check_enough_fields_confirm_notify()) {
-            wc_add_notice(__('Thiếu thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-gateway-fundiin'), 'error');
+            wc_add_notice(__('Thiếu thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-fundiin-gateway'), 'error');
         } else {
-            $orderId = explode($_GET['referenceId']);
+            $referenceId = $_GET['referenceId'];
             $localMessage = $_GET['message'];
             $paymentStatus = $_GET['paymentStatus'];
 
             $request = $_GET;
 
             if (!$this->check_valid_info_confirm_signature($request)) {
-                wc_add_notice(__('Sai thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-gateway-fundiin'), 'error');
+                wc_add_notice(__('Sai thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-fundiin-gateway'), 'error');
             } else {
                 WC()->cart->empty_cart();
-                $order = $this->get_order($orderId);
+                $order = $this->get_order($referenceId);
                 $redirectUrl = wc_get_cart_url();
                 if ($paymentStatus == "SUCCESS") {
                     $order->payment_complete();
@@ -99,11 +92,7 @@ class Fundiin_Response
      * Receive IPN Notify from Fundiin
      * You can custom this function base on your business
      */
-    public function check_fundiin_notify(WP_REST_Request $request)
-    {
-
-
-
+    public function check_fundiin_notify(WP_REST_Request $request) {
         if (!$this->check_enough_fields_confirm_notify(json_decode($request->get_body(), true))) {
             return new WP_REST_RESPONSE(array("message" => "Sai thông tin yêu cầu"), 200);
         }
@@ -151,8 +140,7 @@ class Fundiin_Response
     /**
      * Generate random string for "localMessage"'s key
      */
-    private function gen_random_str($length = 128)
-    {
+    private function gen_random_str($length = 128) {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $chars_len = strlen($chars);
         $random_str = '';
@@ -165,8 +153,7 @@ class Fundiin_Response
     /**
      * Check valid signature from request
      */
-    private function check_valid_info_confirm_signature($request)
-    {
+    private function check_valid_info_confirm_signature($request) {
         $fundiin = fundiin()->fundiin;
         $secretKey = $fundiin->secretKey;
         $merchantId = $fundiin->merchantId;
@@ -182,14 +169,9 @@ class Fundiin_Response
     }
 
     /**
-     * Check enough necessary fields in return
-    
-
-    /**
      * Check enough necessary fields in notify
      */
-    private function check_enough_fields_confirm_notify($request)
-    {
+    private function check_enough_fields_confirm_notify($request) {
         if (!is_array($request)) {
             return false;
         }
@@ -220,8 +202,7 @@ class Fundiin_Response
     /**
      * Get order by Order ID
      */
-    public function get_order($orderId)
-    {
+    public function get_order($orderId) {
         $order_id = explode("_", $orderId)[0];
         return new WC_Order($order_id);
     }
