@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Settings for Fundiin Gateway.
  */
@@ -13,11 +12,8 @@ $settings = [
         "title" => __("Enable/Disable", "woocommerce-fundiin-gateway"),
         "label" => "Enable/Disable buy now pay later with Fundiin",
         "type" => "checkbox",
-        "default" => "no",
-        "description" => __(
-            "Enable or Disable Fundiin Payment Gateway",
-            "woocommerce-fundiin-gateway"
-        ),
+        "default" => "yes",
+        "description" => __("Enable or Disable Fundiin Payment Gateway", "woocommerce-fundiin-gateway"),
         "desc_tip" => true,
     ],
     "environment" => [
@@ -31,15 +27,30 @@ $settings = [
         "default" => "sandbox",
         "desc_tip" => true,
         "options" => [
-            "production" => __(
-                "Production Environment (Live)",
-                "woocommerce-fundiin-gateway"
-            ),
-            "sandbox" => __(
-                "Testing Environment (Sandbox)",
-                "woocommerce-fundiin-gateway"
-            ),
+            "production" => __("Production Environment (Live)", "woocommerce-fundiin-gateway"),
+            "sandbox" => __("Testing Environment (Sandbox)", "woocommerce-fundiin-gateway"),
         ],
+    ],
+    "secretKey" => [
+        "title" => __("Secret Key", "woocommerce-fundiin-gateway"),
+        "type" => "password",
+        "default" => "",
+        "description" => __("Secret key provided by Fundiin ","woocommerce-fundiin-gateway"),
+        "desc_tip" => true,
+    ],
+    "clientId" => [
+        "title" => __("Client Id", "woocommerce-fundiin-gateway"),
+        "type" => "text",
+        "default" => "",
+        "description" => __("Client ID provided by Fundiin", "woocommerce-fundiin-gateway"),
+        "desc_tip" => true,
+    ],
+    "merchantId" => [
+        "title" => __("Merchant Id", "woocommerce-fundiin-gateway"),
+        "type" => "text",
+        "default" => "",
+        "description" => __("Merchant ID provided by Fundiin", "woocommerce-fundiin-gateway"),
+        "desc_tip" => true,
     ],
     "merchant_name" => [
         "title" => __("Merchant Name", "woocommerce-fundiin-gateway"),
@@ -50,39 +61,7 @@ $settings = [
             "woocommerce-fundiin-gateway"
         ),
         "desc_tip" => true,
-    ],
-    "clientId" => [
-        "title" => __("Client Id", "woocommerce-fundiin-gateway"),
-        "type" => "text",
-        "default" => "",
-        "description" => __(
-            "Client ID provided by Fundiin",
-            "woocommerce-fundiin-gateway"
-        ),
-        "desc_tip" => true,
-    ],
-    "merchantId" => [
-        "title" => __("Merchant Id", "woocommerce-fundiin-gateway"),
-        "type" => "text",
-        "default" => "",
-        "description" => __(
-            "Merchant ID provided by Fundiin",
-            "woocommerce-fundiin-gateway"
-        ),
-        "desc_tip" => true,
-    ],
-
-    "secretKey" => [
-        "title" => __("Secret Key", "woocommerce-fundiin-gateway"),
-        "type" => "password",
-        "default" => "",
-        "description" => __(
-            "Secret key provided by Fundiin ",
-            "woocommerce-fundiin-gateway"
-        ),
-        "desc_tip" => true,
-    ],
-
+    ],    
     "storeId" => [
         "title" => __("Store ID", "woocommerce-fundiin-gateway"),
         "type" => "text",
@@ -93,7 +72,6 @@ $settings = [
         ),
         "desc_tip" => true,
     ],
-
     "notify_url" => [
         "title" => __("Notify URL", "woocommerce-fundiin-gateway"),
         "type" => "text",
@@ -104,17 +82,6 @@ $settings = [
         ),
         "desc_tip" => true,
     ],
-    "orderExpiredTime" => [
-        "title" => __("orderExpiredTime", "woocommerce-fundiin-gateway"),
-        "type" => "number",
-        "default" => 1800,
-        "description" => __(
-            "Set the expiration time (in seconds) for an order. Once this time elapses, the order will be marked as expired",
-            "woocommerce-fundiin-gateway"
-        ),
-        "desc_tip" => true,
-    ],
-
 ];
 
 return apply_filters("woocommerce_fundiin_settings", $settings);

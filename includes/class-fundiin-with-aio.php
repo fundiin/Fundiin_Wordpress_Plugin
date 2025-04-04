@@ -45,8 +45,6 @@ class WC_Fundiin_Gateway extends WC_Fundiin_Payment_Gateway
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
         $storeId = $this->storeId;
-        // $orderExpiredTime = $this->orderExpiredTime;
-
         $notifyUrl =
             $this->notifyUrl !== ""
                 ? $this->notifyUrl
@@ -145,7 +143,6 @@ class WC_Fundiin_Gateway extends WC_Fundiin_Payment_Gateway
 
             $data = [
                 "merchantId" => $merchantId,
-                // "orderExpiredTime" => $orderExpiredTime,
                 "platformId" => "WOOCOMMERCE",
                 "requestType" => "installment",
                 "successRedirectUrl" => $successfulUrl,
