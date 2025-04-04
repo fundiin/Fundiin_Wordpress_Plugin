@@ -1,28 +1,23 @@
 <?php
-
 if (!defined("ABSPATH")) {
     exit(); // Exit if accessed directly
 }
 
-class WC_Fundiin_Gateway extends WC_Gateway_Fundiin
+class WC_Fundiin_Gateway extends WC_Fundiin_Payment_Gateway
 {
-    public function __construct()
-    {
+    public function __construct() {
         parent::__construct();
     }
 
-    public function get_fundiin_checkout_url()
-    {
+    public function get_fundiin_checkout_url() {
         return fundiin()->settings->get_fundiin_aio_url();
     }
 
-    public function get_fundiin_refund_url()
-    {
+    public function get_fundiin_refund_url() {
         return fundiin()->settings->get_fundiin_refund_url();
     }
 
-    public function process_payment($order_id)
-    {
+    public function process_payment($order_id) {
         $order = new WC_Order($order_id);
 
         // Get the selected payment method
@@ -36,8 +31,7 @@ class WC_Fundiin_Gateway extends WC_Gateway_Fundiin
         ];
     }
 
-    private function fundiin_checkout($order, $payment_method)
-    {
+    private function fundiin_checkout($order, $payment_method) {
         Fundiin_Logger::wr_log(
             "Start checked out for order " . $order->get_id()
         );
@@ -51,7 +45,7 @@ class WC_Fundiin_Gateway extends WC_Gateway_Fundiin
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
         $storeId = $this->storeId;
-//        $orderExpiredTime = $this->orderExpiredTime;
+        // $orderExpiredTime = $this->orderExpiredTime;
 
         $notifyUrl =
             $this->notifyUrl !== ""
@@ -146,15 +140,12 @@ class WC_Fundiin_Gateway extends WC_Gateway_Fundiin
             "lastName" => strip_tags($order->get_billing_last_name(), ""),
         ];
 
-
-
-
         try {
             $url = $this->get_fundiin_checkout_url();
 
             $data = [
                 "merchantId" => $merchantId,
-//                "orderExpiredTime" => $orderExpiredTime,
+                // "orderExpiredTime" => $orderExpiredTime,
                 "platformId" => "WOOCOMMERCE",
                 "requestType" => "installment",
                 "successRedirectUrl" => $successfulUrl,
@@ -238,8 +229,7 @@ class WC_Fundiin_Gateway extends WC_Gateway_Fundiin
     }
 
     // Perform refund for an order
-    function process_refund($order_id, $amount = null, $reason = "")
-    {
+    function process_refund($order_id, $amount = null, $reason = "") {
         // Get the order object
         $order = wc_get_order($order_id);
 

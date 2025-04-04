@@ -1,30 +1,16 @@
 <?php
-
-if (!defined("ABSPATH")) {
+if (!defined('ABSPATH')) {
     exit(); // Exit if accessed directly.
 }
 
 /**
- * WC_Gateway_Fundiin
+ * WC_Fundiin_Payment_Gateway
  */
-
-abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
+abstract class WC_Fundiin_Payment_Gateway extends WC_Payment_Gateway
 {
-    /**
-     * @var string
-     */
-    public $id;
-    public $order_button_text;
-    /**
-     * @var false
-     */
-    public $has_fields;
-    public $method_title;
-    public $method_description;
     /**
      * @var array|string[]
      */
-    public $supports;
     public $title;
     public $description;
     public $enabled;
@@ -45,39 +31,32 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
      */
     public function __construct()
     {
-        $this->id = "fundiin";
+        $this->id = 'fundiin';
+        $this->icon = apply_filters('woocommerce_custom_gateway_icon', 'Fundiin');
         $this->has_fields = false;
-        $this->order_button_text = __("Mua trước trả sau", "woocommerce-fundiin-gateway");
-        $this->method_title = __("Fundiin Payment Gateway", "woocommerce-fundiin-gateway");
-        $this->method_description = __(
-            "Thanh toán trả sau cùng Fundiin",
-            "woocommerce-fundiin-gateway"
-        );
-
-        $this->supports = ["products", "refunds"];
-
+        $this->method_title = __('Fundiin Payment Gateway', fundiin()->domain);
+        $this->method_description = __('Mua trước trả sau cùng Fundiin', fundiin()->domain);
+        
         // Load the settings
         $this->init_form_fields();
         $this->init_settings();
-
+        
         // Define user set variables
-        $this->title = __("Thanh toán trả sau cùng Fundiin", "woocommerce-fundiin-gateway");
-        $this->description = __("Thanh toán trả sau cùng Fundiin", "woocommerce-fundiin-gateway");
-        $this->enabled = $this->get_option("enabled");
-        $this->environment = $this->get_option("environment", "test");
+        // $this->title = $this->get_option('title');
+        // $this->description = $this->get_option('description');
+        // $this->enabled = $this->get_option('enabled');
+        $this->order_button_text = __("Mua trước trả sau", "woocommerce-fundiin-gateway");
+        $this->supports = ["products", "refunds"];
+        $this->environment = $this->get_option("environment", "sandbox");
         $this->merchantName = $this->get_option("merchant_name");
         $this->notifyUrl = $this->get_option("notify_url");
-
         $this->clientId = $this->get_option("clientId");
         $this->merchantId = $this->get_option("merchantId");
         $this->secretKey = $this->get_option("secretKey");
         $this->storeId = $this->get_option("storeId");
 
-        add_action("woocommerce_update_options_payment_gateways_" . $this->id, [
-            $this,
-            "process_admin_options",
-        ]);
-        add_action("wp_enqueue_scripts", [$this, "settings_scripts"]);
+        add_action('woocommerce_update_options_payment_gateways_' . $this->id, [$this, 'process_admin_options']);
+        add_action('wp_enqueue_scripts', [$this, 'settings_scripts']);
     }
 
     public function process_admin_options()
