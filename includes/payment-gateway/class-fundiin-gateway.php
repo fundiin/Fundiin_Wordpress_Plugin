@@ -62,7 +62,6 @@ class Fundiin_Gateway extends WC_Payment_Gateway
         
         // Define user set variables.
 		$this->title = __('Fundiin - Mua trả sau 0% lãi', fundiin()->domain);
-		$this->description = __('Fundiin - Mua trả sau 0% lãi', fundiin()->domain);
         $this->environment = $this->get_option('environment');
         $this->secret_key = $this->get_option('secret_key');
         $this->client_id = $this->get_option('client_id');
