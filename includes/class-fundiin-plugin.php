@@ -55,7 +55,7 @@ class Fundiin_Plugin
      *
      * @var string
      */
-    public $slug;
+    public $gateway_name;
 
     /**
      * @var Fundiin_Settings
@@ -100,7 +100,7 @@ class Fundiin_Plugin
         $this->plugin_url = trailingslashit(plugin_dir_url($this->file));
         $this->includes_path = $this->plugin_path . trailingslashit('includes');
         $this->domain = 'woocommerce-fundiin-gateway';
-        $this->slug = 'WC_Fundiin_Gateway';
+        $this->gateway_name = 'Fundiin_Gateway';
     }
 
     public function run() {
@@ -147,11 +147,10 @@ class Fundiin_Plugin
         // // Load handlers.
         require_once $this->includes_path . 'class-fundiin-settings.php';
         require_once $this->includes_path . 'class-fundiin-logger.php';
-        require_once $this->includes_path . 'class-fundiin-gateway-loader.php';
+        require_once $this->includes_path . '/payment-gateway/class-fundiin-gateway.php';
+        require_once $this->includes_path . '/payment-gateway/class-fundiin-gateway-loader.php';
         require_once $this->includes_path . 'class-fundiin-response.php';
         require_once $this->includes_path . 'class-fundiin-visibility.php';
-        require_once $this->includes_path . 'abstracts/abstract-fundiin.php';
-        require_once $this->includes_path . 'class-fundiin-with-aio.php';
         require_once $this->includes_path . 'class-fundiin-api.php';
 
         $this->settings = new Fundiin_Settings();
@@ -159,7 +158,7 @@ class Fundiin_Plugin
         $this->visibility = new Fundiin_Visibility();
         $this->gateway_loader = new Fundiin_Gateway_Loader();
         $this->api = new Fundiin_Api();
-        $this->fundiin = new WC_Fundiin_Gateway();
+        $this->fundiin = new Fundiin_Gateway();
         $this->add_cors_plugin();
     }
 
@@ -180,7 +179,7 @@ class Fundiin_Plugin
      * Link to settings screen.
      */
     public function get_admin_setting_link() {
-        return admin_url('admin.php?page=wc-settings&tab=checkout&section=' . $this->slug);
+        return admin_url('admin.php?page=wc-settings&tab=checkout&section=' . $this->gateway_name);
     }
 
 

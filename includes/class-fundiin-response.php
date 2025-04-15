@@ -20,7 +20,7 @@ class Fundiin_Response
 
     public function register_notify_api() {
         $fundiin = fundiin()->fundiin;
-        $clientId = $fundiin->clientId;
+        $clientId = $fundiin->client_id;
 
         register_rest_route(
             'fundiin_payment_' . $clientId,
@@ -155,8 +155,8 @@ class Fundiin_Response
      */
     private function check_valid_info_confirm_signature($request) {
         $fundiin = fundiin()->fundiin;
-        $secretKey = $fundiin->secretKey;
-        $merchantId = $fundiin->merchantId;
+        $secretKey = $fundiin->secret_key;
+        $merchantId = $fundiin->merchant_id;
         $body = json_encode(json_decode($request->get_body(), true));
         $reSignature = hash_hmac('sha256', $body, $secretKey);
         if (json_decode($body, true)['merchantId'] != $merchantId) {
