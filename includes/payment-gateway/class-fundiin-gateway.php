@@ -64,10 +64,10 @@ class Fundiin_Gateway extends WC_Payment_Gateway
 		$this->title = __('Fundiin - Mua trả sau 0% lãi', fundiin()->domain);
 		$this->description = __('Fundiin - Mua trả sau 0% lãi', fundiin()->domain);
         $this->environment = $this->get_option('environment');
-        $this->secret_key = $this->get_option('secret_key'); // 3xPLZ1P0lRhMlO6UO2R4JRbOadUuOI27
-        $this->client_id = $this->get_option('client_id'); // FDC7730783732
-        $this->merchant_id = $this->get_option('merchant_id'); // MEX_G2102202
-        $this->merchant_name = $this->get_option('merchant_name'); // Phu 
+        $this->secret_key = $this->get_option('secret_key');
+        $this->client_id = $this->get_option('client_id');
+        $this->merchant_id = $this->get_option('merchant_id');
+        $this->merchant_name = $this->get_option('merchant_name');
         $this->store_id = $this->get_option('store_id');
         $this->notify_url = $this->get_option('notify_url');
 

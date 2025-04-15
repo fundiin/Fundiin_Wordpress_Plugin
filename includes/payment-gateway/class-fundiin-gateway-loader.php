@@ -19,7 +19,7 @@ class Fundiin_Gateway_Loader
         add_action('before_woocommerce_init', [$this, 'declare_cart_checkout_blocks_compatibility']);
 
         // Hook the custom function to the 'woocommerce_blocks_loaded' action
-        add_action('woocommerce_blocks_loaded', [$this, 'woo_register_order_approval_payment_method_type']);
+        add_action('woocommerce_blocks_loaded', [$this, 'register_order_approval_payment_method_type']);
     }
 
     /**
@@ -48,7 +48,7 @@ class Fundiin_Gateway_Loader
     /**
      * Custom function to register a payment method type
      */
-    public function woo_register_order_approval_payment_method_type() {
+    public function register_order_approval_payment_method_type() {
         // Check if the required class exists
         if (!class_exists('Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
             return;
