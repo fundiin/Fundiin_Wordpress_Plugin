@@ -40,10 +40,6 @@ final class Fundiin_Gateway_Blocks extends AbstractPaymentMethodType {
     }
 
     public function get_payment_method_data() {
-        echo '<pre>';
-        print_r($this);
-        echo '</pre>';
-
         return [
             'title' => $this->gateway->title,
             'description' => $this->gateway->description,

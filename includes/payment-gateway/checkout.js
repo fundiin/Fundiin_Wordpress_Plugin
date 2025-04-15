@@ -5,8 +5,6 @@ const FundiinContent = () => {
     return window.wp.htmlEntities.decodeEntities(fundiinSettings.description || '');
 };
 
-console.log(fundiinSettings);
-
 window.wc.wcBlocksRegistry.registerPaymentMethod({
     name: 'fundiin_gateway',
     label: fundiinLabel,
