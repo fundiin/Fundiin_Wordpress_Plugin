@@ -82,7 +82,10 @@ abstract class WC_Gateway_Fundiin extends WC_Payment_Gateway
 
     public function process_admin_options()
     {
-        parent::process_admin_options();
+        if (!current_user_can('manage_woocommerce')) {
+            return false;
+        }
+        return parent::process_admin_options();
     }
 
     public function settings_scripts()

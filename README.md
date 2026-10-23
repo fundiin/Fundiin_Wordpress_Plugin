@@ -2,7 +2,17 @@
 
 - **Wordpress**: 5.0.0+
 - **WooCommerce**: v3.0+ (classic_checkout must be enabled)
-- **PHP**: 5.6+ **(short_open_tag must be enabled)**
+- **PHP**: 7.4+
+
+Version 2.0.9 contains security changes and an API authentication migration. Read
+[SECURITY.md](SECURITY.md) and [CHANGELOG.md](CHANGELOG.md) before upgrading.
+
+Merchant export routes now require a WordPress account with `manage_woocommerce`.
+For server integrations, use a dedicated authorized account with a WordPress
+Application Password over HTTPS. Legacy RSA signatures alone no longer authorize
+these routes. Application Passwords require WordPress 5.6 or later.
+
+Run the standalone security regression suite with `php tests/security.php`.
 
 ## How to install Fundiin WooCommerce plugin
 

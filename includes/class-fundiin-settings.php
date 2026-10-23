@@ -116,7 +116,10 @@ class Fundiin_Settings
      */
     public function save()
     {
-        update_option('woocommerce_fundiin_settings', $this->_settings);
+        if (!current_user_can('manage_woocommerce')) {
+            return false;
+        }
+        return update_option('woocommerce_fundiin_settings', $this->_settings);
     }
 
     /**

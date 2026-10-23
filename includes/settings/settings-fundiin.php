@@ -20,6 +20,12 @@ $settings = [
         ),
         "desc_tip" => true,
     ],
+    "debug" => [
+        "title" => __("Debug logging", "woocommerce-gateway-fundiin"),
+        "label" => __("Log Fundiin payment events using the WooCommerce logger", "woocommerce-gateway-fundiin"),
+        "type" => "checkbox",
+        "default" => "no",
+    ],
     "environment" => [
         "title" => __("Environment", "woocommerce-gateway-fundiin"),
         "label" => "Choose Environment of plugin",

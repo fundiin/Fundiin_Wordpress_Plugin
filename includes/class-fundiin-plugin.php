@@ -155,7 +155,6 @@ class Fundiin_Plugin
         $this->api = new Fundiin_Api();
 
         $this->fundiin = new Fundiin();
-        $this->add_cors_plugin();
     }
 
     /**
@@ -166,11 +165,6 @@ class Fundiin_Plugin
     protected function needs_update()
     {
         return version_compare($this->version, get_option('wc_fundiin_version'), '>');
-    }
-    function add_cors_plugin()
-    {
-        header("Access-Control-Allow-Origin: '*.fundiin.vn'");
-
     }
 
     /**

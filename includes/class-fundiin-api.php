@@ -1,15 +1,12 @@
 <?php
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 class Fundiin_Api
 {
     public $logger, $helper;
-
-    private $public_key = '-----BEGIN PUBLIC KEY-----
-MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgGWLeG5fXvtBj47I6cKlF85/ydNL
-HfwZ6vVcr3nyBh0nkN5ePJamn7aTMvWF5Y6itodN92Z6oMqH/X/GBqMXx4c9S2JX
-Z5t+TWmlWo8gnGVDLT43VdnYYPYj6rsG4a9IjuFxX7m3ZIymAc+KTDNwKP/fYXWN
-YbjPP+CuaH7XNrg1AgMBAAE=
------END PUBLIC KEY-----';
 
     public function __construct()
     {
@@ -21,7 +18,7 @@ YbjPP+CuaH7XNrg1AgMBAAE=
                 array(
                     'methods' => 'POST',
                     'callback' => array($this, 'get_orders'),
-                    'permission_callback' => array($this, 'verify_signature'),
+                    'permission_callback' => array($this, 'authorize_request'),
                 )
             );
 
@@ -32,7 +29,7 @@ YbjPP+CuaH7XNrg1AgMBAAE=
                 array(
                     'methods' => 'POST',
                     'callback' => array($this, 'get_order_by_id'),
-                    'permission_callback' => array($this, 'verify_signature'),
+                    'permission_callback' => array($this, 'authorize_request'),
                 )
             );
 
@@ -42,7 +39,7 @@ YbjPP+CuaH7XNrg1AgMBAAE=
                 array(
                     'methods' => 'POST',
                     'callback' => array($this, 'get_users'),
-                    'permission_callback' => array($this, 'verify_signature'),
+                    'permission_callback' => array($this, 'authorize_request'),
                 )
             );
 
@@ -52,7 +49,7 @@ YbjPP+CuaH7XNrg1AgMBAAE=
                 array(
                     'methods' => 'POST',
                     'callback' => array($this, 'get_products'),
-                    'permission_callback' => array($this, 'verify_signature'),
+                    'permission_callback' => array($this, 'authorize_request'),
                 )
             );
 
@@ -62,7 +59,7 @@ YbjPP+CuaH7XNrg1AgMBAAE=
                 array(
                     'methods' => 'POST',
                     'callback' => array($this, 'get_product_id'),
-                    'permission_callback' => array($this, 'verify_signature'),
+                    'permission_callback' => array($this, 'authorize_request'),
                 )
             );
         });
@@ -70,38 +67,18 @@ YbjPP+CuaH7XNrg1AgMBAAE=
 
     public function get_orders(WP_REST_Request $request)
     {
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
-
-        $limit = isset($data_array['limit']) ? $data_array['limit'] : -1;
-        $order = isset($data_array['order']) ? $data_array['order'] : 'DESC';
-        $status = isset($data_array['status']) ? $data_array['status'] : 'any';
-
+        $data_array = $this->query_options($request);
+        if (is_wp_error($data_array)) {
+            return $data_array;
+        }
         $args = array(
-            'limit'    => $limit,
-            'orderby'  => 'date',
-            'order'    => $order,
-            'status'   => $status,
+            'limit' => $data_array['limit'],
+            'offset' => $data_array['offset'],
+            'orderby' => 'date',
+            'order' => $data_array['order'],
+            'status' => $data_array['status'],
+            'date_created' => strtotime($data_array['date_from']) . '...' . strtotime($data_array['date_to']),
         );
-
-        if (isset($data_array['date_from'])) {
-            // Kiểm tra xem giá trị có hợp lệ không, nếu không thì gán giá trị mặc định
-            $date_after = $data_array['date_from'];
-        } else {
-            // Thiết lập giá trị mặc định cho date_after, ví dụ là 30 ngày trước
-            $date_after = date('Y-m-d H:i:s', strtotime('-30 days'));
-        }
-
-        if (isset($data_array['date_to'])) {
-            // Kiểm tra xem giá trị có hợp lệ không, nếu không thì gán giá trị mặc định
-            $date_before = $data_array['date_to'];
-        } else {
-            // Thiết lập giá trị mặc định cho date_before, ví dụ là ngày hiện tại
-            $date_before = date('Y-m-d H:i:s');
-        }
-
-        $args['date_after'] = $date_after;
-        $args['date_before'] = $date_before;
 
         // Lấy danh sách đơn hàng
         $orders = wc_get_orders($args);
@@ -122,15 +99,14 @@ YbjPP+CuaH7XNrg1AgMBAAE=
     public function get_users(WP_REST_Request $request)
     {
         global $wpdb;
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
-
-        $limit = isset($data_array['limit']) ? $data_array['limit'] : -1;
-        $order = isset($data_array['order']) ? $data_array['order'] : 'DESC';
-        $date_from = isset($data_array['date_from']) ? $data_array['date_from'] : date('Y-m-d', strtotime('-30 days'));
-
-        // date_to: Nếu không có, lấy ngày hôm nay
-        $date_to = isset($data_array['date_to']) ? $data_array['date_to'] : date('Y-m-d');
+        $data_array = $this->query_options($request);
+        if (is_wp_error($data_array)) {
+            return $data_array;
+        }
+        $limit = $data_array['limit'];
+        $order = $data_array['order'];
+        $date_from = $data_array['date_from'];
+        $date_to = $data_array['date_to'];
         $query = "
         SELECT DISTINCT 
             pm_email.meta_value AS email, 
@@ -158,7 +134,7 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         // Sắp xếp và giới hạn
         $query .= " ORDER BY p.post_date {$order}";
         if ($limit > 0) {
-            $query .= $wpdb->prepare(" LIMIT %d", $limit);
+            $query .= $wpdb->prepare(" LIMIT %d OFFSET %d", $limit, $data_array['offset']);
         }
 
         $results = $wpdb->get_results($query);
@@ -193,17 +169,15 @@ YbjPP+CuaH7XNrg1AgMBAAE=
 
     public function get_products(WP_REST_Request $request)
     {
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
-
-        $limit = $data && $data_array['limit'] ? $data_array['limit'] : -1;
-        $order = $data && $data_array['order'] ? $data_array['order'] : 'DESC';
-        $orderby = $data && $data_array['$orderBy'] ? $data_array['$orderBy'] : 'date';
-
+        $data_array = $this->query_options($request);
+        if (is_wp_error($data_array)) {
+            return $data_array;
+        }
         $query = new WC_Product_Query(array(
-            'limit' => $limit,
-            'orderby' => $orderby,
-            'order' => $order,
+            'limit' => $data_array['limit'],
+            'offset' => $data_array['offset'],
+            'orderby' => 'date',
+            'order' => $data_array['order'],
             'return' => 'objects',
         ));
 
@@ -233,7 +207,8 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         $data = $request->get_body();
         $data_array = json_decode($data, true);
 
-        $productId = $request->get_param('product_id');
+        $params = $request->get_url_params();
+        $productId = isset($params['product_id']) ? (int) $params['product_id'] : 0;
         $product = wc_get_product($productId); // Lấy sản phẩm dựa trên ID
 
         if ($product) {
@@ -270,10 +245,15 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         ];
     }
 
+    private function get_orders_by_customer_id($customer_id)
+    {
+        return $this->format_orders(wc_get_orders(array('customer_id' => $customer_id, 'limit' => 100)));
+    }
+
 // Hàm lấy danh sách đơn hàng theo email khách hàng
     private function get_orders_by_customer_email($email)
     {
-        $orders = wc_get_orders(['billing_email' => $email]);
+        $orders = wc_get_orders(['billing_email' => $email, 'limit' => 100]);
         return $this->format_orders($orders);
     }
 
@@ -315,12 +295,14 @@ YbjPP+CuaH7XNrg1AgMBAAE=
     public function get_order_by_id(WP_REST_Request $request)
     {
 
-        $order_id = $request->get_param('order_id');
+        $params = $request->get_url_params();
+        $order_id = isset($params['order_id']) ? (int) $params['order_id'] : 0;
         $order = wc_get_order($order_id);
 
         if ($order) {
-            return new WP_REST_Response(['status' => 'success', 'data' => format_order_data($order)], 200);
-        }                                                                                                                               return new WP_REST_Response(array('message' => 'Order not found'), 404);
+            return new WP_REST_Response(['status' => 'success', 'data' => $this->format_order_data($order)], 200);
+        }
+        return new WP_REST_Response(array('message' => 'Order not found'), 404);
     }
 
 
@@ -328,7 +310,6 @@ YbjPP+CuaH7XNrg1AgMBAAE=
     {
         return array(
             'order_id' => $order->get_id(),
-            'order_key' => $order->get_order_key(),
             'status' => $order->get_status(),
             'date_created' => $order->get_date_created()->date('Y-m-d H:i:s'),
             'total' => $order->get_total(),
@@ -372,58 +353,49 @@ YbjPP+CuaH7XNrg1AgMBAAE=
         return $items;
     }
 
-    public function verify_signature(WP_REST_Request $request)
+    /** Use WordPress authentication and store-specific capabilities, never a shared credential. */
+    public function authorize_request(WP_REST_Request $request)
     {
-        $fundiin = fundiin()->fundiin;
-        $merchantIdSetting = $fundiin->merchantId;
-        $data = $request->get_body();
-        $data_array = json_decode($data, true);
-        $public_key = $this->public_key;
-        $merchantId = $request->get_param('merchant_id');
-        $signature = $request->get_header('signature');
-        $timeStamp = (int) $data_array['timestamp'];
-
-
-        if (trim((string)$merchantId) !== trim((string)$merchantIdSetting)) {
-            return new WP_Error(
-                'INVALID_MERCHANT_ID',
-                'The merchant is not registered.',
-                array('status' => 400)
-            );
+        if (!current_user_can('manage_woocommerce')) {
+            return new WP_Error('fundiin_forbidden', 'WooCommerce management permission required.', array('status' => 403));
         }
-
-        if (!$timeStamp) {
-            return new WP_Error(
-                'INVALID_TIMESTAMP',
-                $timeStamp . ' Dữ liệu không hợp lệ',
-                array('status' => 400)
-            );
+        $params = $request->get_url_params();
+        $merchant = fundiin()->fundiin->merchantId;
+        if (!is_string($merchant) || $merchant === '' || !isset($params['merchant_id']) ||
+            !is_string($params['merchant_id']) || !hash_equals($merchant, $params['merchant_id'])) {
+            return new WP_Error('fundiin_invalid_merchant', 'Invalid merchant.', array('status' => 403));
         }
-
-        $is_valid = $this->verify_rsa_signature($data, $signature, $public_key);
-        if (!$is_valid) {
-            return new WP_Error('INVALID_SIGNATURE', 'Chữ ký không hợp lệ', ['signature' => $signature, 'data' => $data, 'status' => 401]);
-        }
-
-        $date = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
-        $milli_seconds = (int)$date->format('u') / 1000;
-        $timestamp_seconds = $date->getTimestamp();
-        $current_time_millis = $timestamp_seconds * 1000 + $milli_seconds;
-
-        if ($timeStamp < $current_time_millis) {
-            return new WP_Error(
-                'INVALID_SIGNATURE',
-                'Chữ ký không hợp lệ',
-                array('status' => 400)
-            );
-        }
-
         return true;
     }
 
-    private function verify_rsa_signature($data, $signature, $public_key)
+    /** Validate all values before using them in SQL or WooCommerce queries. */
+    private function query_options(WP_REST_Request $request)
     {
-        $is_valid = openssl_verify($data, base64_decode($signature), $public_key, OPENSSL_ALGO_SHA256);
-        return $is_valid === 1;
+        $body = $request->get_body();
+        $data = $body === '' ? array() : json_decode($body, true);
+        if (!is_array($data)) {
+            return new WP_Error('fundiin_invalid_query', 'Expected a JSON object.', array('status' => 400));
+        }
+        $data = array_merge(array('limit' => 50, 'offset' => 0, 'order' => 'DESC', 'status' => 'any',
+            'date_from' => date('Y-m-d H:i:s', strtotime('-30 days')), 'date_to' => date('Y-m-d H:i:s')), $data);
+        $limit = filter_var($data['limit'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 1, 'max_range' => 100)));
+        $offset = filter_var($data['offset'], FILTER_VALIDATE_INT, array('options' => array('min_range' => 0, 'max_range' => 1000000)));
+        if ($limit === false || $offset === false || !in_array($data['order'], array('ASC', 'DESC'), true) ||
+            !is_string($data['status']) || ($data['status'] !== 'any' &&
+                !in_array('wc-' . preg_replace('/^wc-/', '', $data['status']), array_keys(wc_get_order_statuses()), true))) {
+            return new WP_Error('fundiin_invalid_query', 'Invalid limit, offset, order or status.', array('status' => 400));
+        }
+        foreach (array('date_from', 'date_to') as $field) {
+            if (!is_string($data[$field]) || !preg_match('/\A[0-9]{4}-[0-9]{2}-[0-9]{2}( [0-9]{2}:[0-9]{2}:[0-9]{2})?\z/', $data[$field]) ||
+                strtotime($data[$field]) === false) {
+                return new WP_Error('fundiin_invalid_query', 'Invalid date range.', array('status' => 400));
+            }
+        }
+        if (strtotime($data['date_from']) > strtotime($data['date_to'])) {
+            return new WP_Error('fundiin_invalid_query', 'Invalid date range.', array('status' => 400));
+        }
+        $data['limit'] = $limit;
+        $data['offset'] = $offset;
+        return $data;
     }
 }

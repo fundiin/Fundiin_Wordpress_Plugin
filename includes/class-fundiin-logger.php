@@ -35,29 +35,12 @@ if (!class_exists('Fundiin_Logger')) {
 
         public static function wh_log($log_msg)
         {
-            try {
-                if (!class_exists('WC_Logger')) {
-                    return;
-                }
-
-                if (!Fundiin_Logger::get_can_write_log()) {
-                    return;
-                }
-
-                $log_filename = "logs";
-                if (!file_exists($log_filename)) {
-                    mkdir($log_filename, 0777, true);
-                }
-
-                $log_file_data = $log_filename . '/fundiin_payment_log_' . date('d-M-Y') . '.log';
-                file_put_contents($log_file_data, date("y-m-d H:i:s.") . gettimeofday()["usec"] . ': ' . $log_msg . "\n", FILE_APPEND);
-            } catch (Exception $e) {
-            }
+            self::wr_log($log_msg);
         }
 
         private static function get_can_write_log()
         {
-            return true;
+            return fundiin()->settings->is_logging_enabled();
         }
     }
 }

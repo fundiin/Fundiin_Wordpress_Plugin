@@ -1,20 +1,13 @@
 <?php
 
 if (!defined('ABSPATH')) {
-    exit; // Exit if accessed directly
+    exit;
 }
 
-/**
- * Handle response from Fundiin (return & notify)
- */
+/** Handle authenticated server-to-server payment notifications. */
 class Fundiin_Response
 {
     public function __construct()
-    {
-        $this->response_action();
-    }
-
-    public function response_action()
     {
         add_action('wp_ajax_fundiin_payment_response_return', array($this, 'fundiin_handle_response_return'));
         add_action('rest_api_init', array($this, 'register_notify_api'));
@@ -22,207 +15,102 @@ class Fundiin_Response
 
     public function register_notify_api()
     {
-        $fundiin = fundiin()->fundiin;
-        $clientId = $fundiin->clientId;
-
-        register_rest_route(
-            'fundiin_payment_' . $clientId,
-            'notify',
-            array(
-                'methods' => 'POST',
-                'callback' => array($this, 'check_fundiin_notify'),
-                'permission_callback' => '__return_true',
-
-            ),
-
-        );
-
-    }
-    public function check_enough_fields_confirm_return()
-    {
-        if (
-            !isset ($_GET['referenceId']) ||
-            !isset ($_GET['message']) ||
-            !isset ($_GET['paymentStatus'])
-        ) {
-            return false;
-        }
-        return true;
+        register_rest_route('fundiin_payment_' . fundiin()->fundiin->clientId, 'notify', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'check_fundiin_notify'),
+            'permission_callback' => array($this, 'verify_notification'),
+        ));
     }
 
-    /**
-     * Receive return param from fundiin
-     * Please do not edit if not necessary (This function will impact to your WooCommerce order)
-     */
+    /** Browser query parameters are never proof of payment. */
     public function fundiin_handle_response_return()
     {
-        if (!$this->check_enough_fields_confirm_notify()) {
-            wc_add_notice(__('Thiếu thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-gateway-fundiin'), 'error');
-        } else {
-            $orderId = explode($_GET['referenceId']);
-            $localMessage = $_GET['message'];
-            $paymentStatus = $_GET['paymentStatus'];
-
-            $request = $_GET;
-
-            if (!$this->check_valid_info_confirm_signature($request)) {
-                wc_add_notice(__('Sai thông tin xác nhận thanh toán, vui lòng kiểm tra lại', 'woocommerce-gateway-fundiin'), 'error');
-            } else {
-                WC()->cart->empty_cart();
-                $order = $this->get_order($orderId);
-                $redirectUrl = wc_get_cart_url();
-                if ($paymentStatus == "SUCCESS") {
-                    $order->payment_complete();
-                    $order->reduce_order_stock();
-                    $order->add_order_note(
-                        sprintf(__('Thanh toán đơn hàng: %s thành công bằng %s.', 'your-plugin'), $request['orderId'], $order->get_meta('payment method'))
-                    );
-                    $order->set_transaction_id($request['paymentTransId']);
-                    $order->update_meta_data('fundiin_orderId', $request['orderId']);
-                    $order->update_meta_data('fundiin_transId', $request['paymentTransId']);
-                    $order->save();
-                    $redirectUrl = $order->get_checkout_order_received_url();
-                } else {
-                    $order->update_status('cancelled');
-                    $order->add_order_note(__($localMessage, 'woocommerce'));
-                    $key = $this->gen_random_str();
-                    $redirectUrl .= '?' . $key . '=' . $localMessage;
-                    add_option('localMessage', $key);
-                }
-                wp_redirect($redirectUrl);
-            }
-        }
-        exit();
+        wp_safe_redirect(wc_get_cart_url());
+        exit;
     }
 
-    /**
-     * Receive IPN Notify from Fundiin
-     * You can custom this function base on your business
-     */
+    public function verify_notification(WP_REST_Request $request)
+    {
+        $body = $request->get_body();
+        $data = json_decode($body, true);
+        $gateway = fundiin()->fundiin;
+        $signature = $request->get_header('signature');
+
+        if (!is_array($data) || !is_string($gateway->secretKey) || $gateway->secretKey === '' ||
+            !is_string($gateway->merchantId) || $gateway->merchantId === '' ||
+            !isset($data['merchantId']) || !is_string($data['merchantId']) ||
+            !hash_equals($gateway->merchantId, $data['merchantId']) ||
+            !is_string($signature) || !preg_match('/\A[0-9a-fA-F]{64}\z/', $signature)) {
+            return new WP_Error('fundiin_invalid_signature', 'Invalid notification signature.', array('status' => 401));
+        }
+
+        // Support both the raw-body protocol and older JSON-normalized signatures.
+        $signature = strtolower($signature);
+        if (!hash_equals(hash_hmac('sha256', $body, $gateway->secretKey), $signature) &&
+            !hash_equals(hash_hmac('sha256', json_encode($data), $gateway->secretKey), $signature)) {
+            return new WP_Error('fundiin_invalid_signature', 'Invalid notification signature.', array('status' => 401));
+        }
+        return true;
+    }
+
     public function check_fundiin_notify(WP_REST_Request $request)
     {
-
-
-
-        if (!$this->check_enough_fields_confirm_notify(json_decode($request->get_body(), true))) {
-            return new WP_REST_RESPONSE(array("message" => "Sai thông tin yêu cầu"), 200);
+        // Enforce authentication even when called outside the REST dispatcher.
+        $verified = $this->verify_notification($request);
+        if (is_wp_error($verified)) {
+            return $verified;
         }
-        if (!$this->check_valid_info_confirm_signature($request)) {
-            return new WP_REST_RESPONSE(array("message" => "Sai thông tin chữ ký"), 200);
+        $data = json_decode($request->get_body(), true);
+        if (!$this->valid_notification($data)) {
+            return new WP_Error('fundiin_invalid_notification', 'Invalid notification data.', array('status' => 400));
         }
-
-        $returnBody = json_decode($request->get_body(), 1);
+        $order_id = (int) explode('_', $data['referenceId'])[0];
+        $order = wc_get_order($order_id);
+        if (!$order || $order->get_payment_method() !== 'fundiin') {
+            return new WP_Error('fundiin_invalid_order', 'Invalid payment order.', array('status' => 400));
+        }
+        $reference = $order->get_meta('_fundiin_reference_id');
+        if (($reference !== '' && !hash_equals((string) $reference, $data['referenceId'])) ||
+            $data['amount']['currency'] !== $order->get_currency() ||
+            wc_format_decimal($data['amount']['value'], 2) !== wc_format_decimal($order->get_total(), 2)) {
+            return new WP_Error('fundiin_payment_mismatch', 'Payment does not match the order.', array('status' => 400));
+        }
+        if ($data['paymentStatus'] === 'PENDING' || !$order->has_status(array('pending', 'on-hold'))) {
+            return new WP_REST_Response(null, 204);
+        }
         try {
-            $order = wc_get_order(explode('_', $returnBody['referenceId'])[0]);
-            if (!$order) {
-                return new WP_REST_Response(array('message' => 'Không tìm thấy đơn hàng'), 400);
-            }
-
-            if ($order->get_status() == 'pending') {
-                if ($returnBody['notificationType'] == "PAYMENT_STATUS" && $returnBody['paymentStatus'] == "SUCCESS") {
-
-                    $order->set_transaction_id($request['paymentTransId']);
-                    $order->update_meta_data('fundiin_orderId', $request['orderId']);
-                    $order->update_meta_data('fundiin_transId', $request['paymentTransId']);
-                    $order->payment_complete();
-                    $order->reduce_order_stock();
-                    $order->add_order_note("Thanh toán thành công qua Fundiin với mã số giao dịch " . $returnBody['paymentTransId'] . ".");
-
-                    $order->update_status('processing', "Thanh toán thành công qua Fundiin với mã số giao dịch " . $returnBody['paymentTransId'] . ".");
-                    $order->save();
-
-                    return new WP_REST_Response(array(), 204);
-                } else {
-                    $order->update_status('cancelled');
-                    $order->add_order_note('Đơn hàng bị huỷ: ' . $returnBody['resultMsg']);
-                    $order->save();
-
-                    return new WP_REST_Response(array(), 400);
+            if ($data['paymentStatus'] === 'SUCCESS') {
+                $order->update_meta_data('fundiin_transId', $data['paymentTransId']);
+                if (isset($data['orderId']) && is_scalar($data['orderId'])) {
+                    $order->update_meta_data('fundiin_orderId', sanitize_text_field((string) $data['orderId']));
                 }
-
+                // WooCommerce owns stock reduction and the processing/completed transition.
+                $order->payment_complete($data['paymentTransId']);
+                $order->add_order_note('Thanh toán thành công qua Fundiin với mã số giao dịch ' . sanitize_text_field($data['paymentTransId']) . '.');
+            } else {
+                $order->update_status('cancelled', 'Đơn hàng bị huỷ qua Fundiin.');
             }
-
-            return new WP_REST_Response(array(), 204);
+            $order->save();
+            return new WP_REST_Response(null, 204);
         } catch (Exception $ex) {
-            return new WP_REST_Response(array('message' => $ex->getMessage()), 400);
+            Fundiin_Logger::wr_log('Payment notification processing failed for order ' . $order_id);
+            return new WP_Error('fundiin_notification_failed', 'Unable to process notification.', array('status' => 500));
         }
     }
 
-    /**
-     * Generate random string for "localMessage"'s key
-     */
-    private function gen_random_str($length = 128)
+    private function valid_notification($data)
     {
-        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $chars_len = strlen($chars);
-        $random_str = '';
-        for ($i = 0; $i < $length; $i++) {
-            $random_str .= $chars[rand(0, $chars_len - 1)];
-        }
-        return $random_str;
-    }
-
-    /**
-     * Check valid signature from request
-     */
-    private function check_valid_info_confirm_signature($request)
-    {
-        $fundiin = fundiin()->fundiin;
-        $secretKey = $fundiin->secretKey;
-        $merchantId = $fundiin->merchantId;
-        $body = json_encode(json_decode($request->get_body(), true));
-        $reSignature = hash_hmac('sha256', $body, $secretKey);
-        if (json_decode($body, true)['merchantId'] != $merchantId) {
+        if (!isset($data['referenceId'], $data['notificationType'], $data['paymentStatus'], $data['amount']) ||
+            !is_string($data['referenceId']) || !preg_match('/\A[1-9][0-9]*_[0-9]{13}\z/', $data['referenceId']) ||
+            $data['notificationType'] !== 'PAYMENT_STATUS' ||
+            !in_array($data['paymentStatus'], array('PENDING', 'SUCCESS', 'FAIL'), true) ||
+            !is_array($data['amount']) || !isset($data['amount']['value'], $data['amount']['currency']) ||
+            !is_scalar($data['amount']['value']) || is_bool($data['amount']['value']) ||
+            !is_numeric($data['amount']['value']) || !is_finite((float) $data['amount']['value']) ||
+            (float) $data['amount']['value'] < 0 || !is_string($data['amount']['currency'])) {
             return false;
         }
-        if ($reSignature !== $request->get_header('signature')) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Check enough necessary fields in return
-    
-
-    /**
-     * Check enough necessary fields in notify
-     */
-    private function check_enough_fields_confirm_notify($request)
-    {
-        if (!is_array($request)) {
-            return false;
-        }
-        $requiredFields = array(
-            'merchantId',
-            'referenceId',
-            'amount',
-            'paymentTransId',
-            'paymentMethod',
-            'paymentChannel',
-            'paymentStatus',
-            'notificationType',
-            'resultStatus',
-            'resultMsg',
-            'customerId',
-            'paymentTime'
-        );
-
-        $missingFields = array_diff($requiredFields, array_keys($request));
-        if (
-            !empty ($missingFields)
-        ) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Get order by Order ID
-     */
-    public function get_order($orderId)
-    {
-        $order_id = explode("_", $orderId)[0];
-        return new WC_Order($order_id);
+        return $data['paymentStatus'] !== 'SUCCESS' ||
+            (isset($data['paymentTransId']) && is_string($data['paymentTransId']) && trim($data['paymentTransId']) !== '');
     }
 }

@@ -23,12 +23,22 @@ class Fundiin extends WC_Gateway_Fundiin
 
     public function process_payment($order_id)
     {
-        $order = new WC_Order($order_id);
+        $order = wc_get_order($order_id);
+        if (!$order || $order->get_payment_method() !== $this->id || $order->is_paid() ||
+            $order->get_currency() !== 'VND' || $this->secretKey === '' || $this->merchantId === '' || $this->clientId === '') {
+            wc_add_notice(__('Không thể thanh toán đơn hàng qua Fundiin.', 'woocommerce-gateway-fundiin'), 'error');
+            return array('result' => 'failure');
+        }
 
         // Get the selected payment method
-        $payment_method = sanitize_text_field($_POST["fundiin_payment_method"]);
+        $payment_method = "BNPL";
         $this->update_payment_method($order, $payment_method);
-        $payUrl = $this->fundiin_checkout($order, $payment_method);
+        try {
+            $payUrl = $this->fundiin_checkout($order, $payment_method);
+        } catch (Exception $ex) {
+            wc_add_notice(__('Không thể tạo thanh toán qua Fundiin.', 'woocommerce-gateway-fundiin'), 'error');
+            return array('result' => 'failure');
+        }
 
         return [
             "result" => "success",
@@ -41,12 +51,6 @@ class Fundiin extends WC_Gateway_Fundiin
         Fundiin_Logger::wr_log(
             "Start checked out for order " . $order->get_id()
         );
-        $merchant = json_encode([
-            "clientId" => $this->clientId,
-            "merchantId" => $this->merchantId,
-            "secretKey" => $this->secretKey,
-        ]);
-        Fundiin_Logger::wr_log("Merchant Information: " . $merchant);
         $clientId = $this->clientId;
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
@@ -62,14 +66,17 @@ class Fundiin extends WC_Gateway_Fundiin
                     "/notify";
         $successfulUrl = $order->get_checkout_order_received_url();
         $unsucessfulUrl = $order->get_view_order_url();
-        $amount = strval(round(WC()->cart->total));
+        $amount = wc_format_decimal($order->get_total());
         $orderId = $order->get_id();
         $now = round(microtime(true) * 1000);
+        $referenceId = $order->get_id() . "_" . $now;
+        // Persist before the HTTP call so even an immediate webhook can be checked.
+        $order->update_meta_data('_fundiin_reference_id', $referenceId);
+        $order->save();
 
         $orderInfo =
             __("Thanh toán đơn hàng ", "woocommerce-gateway-fundiin") .
             $this->merchantName;
-        $items = WC()->cart->get_cart();
         $gwItems = [];
 
         $order = wc_get_order($orderId);
@@ -163,7 +170,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 "notifyUrl" => $notifyUrl,
                 "description" => $orderInfo,
                 "paymentMethod" => "BNPL",
-                "referenceId" => $orderId . "_" . $now,
+                "referenceId" => $referenceId,
                 "extraData" => $orderInfo,
                 "amount" => [
                     "value" => $amount,
@@ -183,17 +190,16 @@ class Fundiin extends WC_Gateway_Fundiin
             ];
             $data_encode = json_encode($data);
             Fundiin_Logger::wr_log("Order ID " . $order->get_id());
-            Fundiin_Logger::wr_log("Request data " . $data_encode);
-            Fundiin_Logger::wr_log("Request header " . json_encode($header));
 
             $response = wp_remote_post($url, [
                 "headers" => $header,
                 "timeout" => 10,
                 "body" => $data_encode,
-                "sslverify" => false,
+                "sslverify" => true,
+                "redirection" => 0,
             ]);
             if (is_wp_error($response)) {
-                $error_message = $response->get_error_message();
+                $error_message = __('Không thể kết nối Fundiin.', 'woocommerce-gateway-fundiin');
                 Fundiin_Logger::wr_log(
                     "Error message at request " . $error_message
                 );
@@ -204,23 +210,25 @@ class Fundiin extends WC_Gateway_Fundiin
 
                 throw new Exception("error_message");
             } else {
-                $result = json_decode($response["body"]);
+                $result = json_decode(wp_remote_retrieve_body($response));
 
-                if ($result->resultStatus != "APPROVED") {
+                if (wp_remote_retrieve_response_code($response) < 200 || wp_remote_retrieve_response_code($response) >= 300 ||
+                    !is_object($result) || !isset($result->resultStatus) || $result->resultStatus !== "APPROVED") {
                     wc_add_notice(
-                        _(
-                            "Không thể tạo đơn hàng và thanh toán qua Fundiin \n"
-                        ),
+                        __("Không thể tạo đơn hàng và thanh toán qua Fundiin.", "woocommerce-gateway-fundiin"),
                         "error"
                     );
                     Fundiin_Logger::wr_log(
-                        "Fail at Fundiin " . $response["body"]
+                        "Payment initiation declined for order " . $order->get_id()
                     );
                     throw new Exception();
                 }
                 Fundiin_Logger::wr_log(
-                    "Initial payment success at Fundiin " . $response["body"]
+                    "Payment initiated for order " . $order->get_id()
                 );
+                if (!isset($result->paymentUrl) || !$this->is_valid_payment_url($result->paymentUrl)) {
+                    throw new Exception('Invalid payment redirect URL.');
+                }
                 return $result->paymentUrl;
             }
             wc_add_notice(
@@ -231,10 +239,21 @@ class Fundiin extends WC_Gateway_Fundiin
                 __("Yêu cầu không hợp lệ", "woocommerce-gateway-fundiin")
             );
         } catch (Exception $ex) {
-            Fundiin_Logger::wr_log("ERROR AT CODE " . $ex->getMessage());
+            Fundiin_Logger::wr_log("Payment initiation failed for order " . $order->get_id());
 
             throw new Exception();
         }
+    }
+
+    private function is_valid_payment_url($url)
+    {
+        if (!is_string($url) || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+        $parts = wp_parse_url($url);
+        return is_array($parts) && isset($parts['scheme'], $parts['host']) && $parts['scheme'] === 'https' &&
+            (strtolower($parts['host']) === 'fundiin.vn' || substr(strtolower($parts['host']), -11) === '.fundiin.vn') &&
+            !isset($parts['user']) && !isset($parts['pass']) && (!isset($parts['port']) || $parts['port'] === 443);
     }
 
     // Perform refund for an order
@@ -242,6 +261,10 @@ class Fundiin extends WC_Gateway_Fundiin
     {
         // Get the order object
         $order = wc_get_order($order_id);
+        if (!$order || $order->get_payment_method() !== $this->id || $order->get_currency() !== 'VND' ||
+            !current_user_can('manage_woocommerce') || $this->secretKey === '' || $this->merchantId === '' || $this->clientId === '') {
+            return new WP_Error('fundiin_invalid_refund', 'Invalid Fundiin refund.');
+        }
 
         $clientId = $this->clientId;
         $merchantId = $this->merchantId;
@@ -250,7 +273,7 @@ class Fundiin extends WC_Gateway_Fundiin
         $now = round(microtime(true) * 1000);
         $orderId = $clientId . "_REFUND_" . $order_id . "_" . $now;
         $transId = $order->get_transaction_id();
-        if ($transId === null or !isset($transId)) {
+        if (!is_string($transId) || $transId === "") {
             $error = new WP_Error(
                 "transaction_not_found",
                 __(
@@ -261,9 +284,9 @@ class Fundiin extends WC_Gateway_Fundiin
             return $error;
         }
         if (
-            $amount === null or
-            !isset($amount) or
-            $order->get_total() != $amount
+            !is_scalar($amount) || is_bool($amount) || !is_numeric($amount) ||
+            !is_finite((float) $amount) || (float) $amount <= 0 ||
+            wc_format_decimal($order->get_total(), 2) !== wc_format_decimal($amount, 2)
         ) {
             $error = new WP_Error(
                 "cannot_refund",
@@ -276,7 +299,7 @@ class Fundiin extends WC_Gateway_Fundiin
             return $error;
         }
 
-        if ($order->get_status() != "processing") {
+        if (!$order->is_paid()) {
             $error = new WP_Error(
                 "cannot_refund",
                 __(
@@ -301,7 +324,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 ],
             ];
             $data_encode = json_encode($data);
-            $signature = bin2hex(hash_hmac("sha256", $data_encode, $secretKey));
+            $signature = hash_hmac("sha256", $data_encode, $secretKey);
 
             $response = wp_remote_post($url, [
                 "headers" => [
@@ -311,23 +334,23 @@ class Fundiin extends WC_Gateway_Fundiin
                 ],
                 "timeout" => 10,
                 "body" => $data_encode,
-                "sslverify" => false,
+                "sslverify" => true,
+                "redirection" => 0,
             ]);
             if (is_wp_error($response)) {
-                $error_message = $response->get_error_message();
+                $error_message = __('Không thể kết nối Fundiin.', 'woocommerce-gateway-fundiin');
                 wc_add_notice(
                     __($error_message, "woocommerce-gateway-fundiin"),
                     "error"
                 );
                 return false;
             } else {
-                $result = json_decode($response["body"]);
-                if ($result->resultStatus != "APPROVED") {
-                    wc_add_notice(
-                        $result->resultMsg,
-                        "woocommerce-gateway-fundiin"
-                    );
-                    $error = new WP_Error("cannot_refund", $result->resultMsg);
+                $result = json_decode(wp_remote_retrieve_body($response));
+                if (wp_remote_retrieve_response_code($response) < 200 || wp_remote_retrieve_response_code($response) >= 300 ||
+                    !is_object($result) || !isset($result->resultStatus, $result->referenceId, $result->refundTransId) ||
+                    $result->resultStatus !== "APPROVED" || !is_string($result->referenceId) ||
+                    !hash_equals($orderId, $result->referenceId) || !is_string($result->refundTransId)) {
+                    $error = new WP_Error("cannot_refund", __('Hoàn tiền qua Fundiin thất bại.', 'woocommerce-gateway-fundiin'));
 
                     return $error;
                 }
@@ -354,7 +377,7 @@ class Fundiin extends WC_Gateway_Fundiin
                 return true;
             }
         } catch (Exception $ex) {
-            wc_add_notice($ex->getMessage(), "error");
+            wc_add_notice(__("Hoàn tiền qua Fundiin thất bại.", "woocommerce-gateway-fundiin"), "error");
             return false;
         }
     }
