@@ -122,7 +122,7 @@ class Fundiin_Plugin
             'woocommerce-gateway-fundiin'
         );
 
-        printf('<div class="%1$s"><p><strong>%2$s</strong></p></div>', $class, $message);
+        printf('<div class="%1$s"><p><strong>%2$s</strong></p></div>', esc_attr($class), esc_html($message));
     }
 
     /**

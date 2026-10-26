@@ -19,9 +19,11 @@ WordPress.org package, and a GitHub release does not update WordPress.org instal
   a WordPress login. It requires an HMAC-SHA256 signature using the store's nonempty
   secret and an exact merchant match. Both raw-body and legacy JSON-normalized
   signatures are supported. Query/body parameters cannot override signed fields.
-- An order can change only when its gateway, reference, amount and currency match.
-  Persisted references bind new callbacks to the latest payment attempt. Existing
-  in-flight orders without that metadata retain the legacy reference format.
+- An order can change only when its gateway, persisted `_fundiin_reference_id`,
+  amount and currency match. Persisted references bind callbacks to the latest
+  payment attempt.
+- Concurrent notifications for the same order are serialized using per-order
+  locks and post-lock status re-verification.
 - Browser redirects never confirm payment. Only verified server notifications do.
 - Settings writes and refunds require WooCommerce management permission. This
   repository does not expose settings or order-status mutation REST routes.

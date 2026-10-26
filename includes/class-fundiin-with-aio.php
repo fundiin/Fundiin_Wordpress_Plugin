@@ -62,13 +62,13 @@ class Fundiin extends WC_Gateway_Fundiin
                 ? $this->notifyUrl
                 : get_home_url() .
                     "/wp-json/fundiin_payment_" .
-                    $clientId .
+                    rawurlencode((string) $clientId) .
                     "/notify";
         $successfulUrl = $order->get_checkout_order_received_url();
         $unsucessfulUrl = $order->get_view_order_url();
         $amount = wc_format_decimal($order->get_total());
         $orderId = $order->get_id();
-        $now = round(microtime(true) * 1000);
+        $now = (int) round(microtime(true) * 1000);
         $referenceId = $order->get_id() . "_" . $now;
         // Persist before the HTTP call so even an immediate webhook can be checked.
         $order->update_meta_data('_fundiin_reference_id', $referenceId);
@@ -96,12 +96,16 @@ class Fundiin extends WC_Gateway_Fundiin
                     $categoryListString = join(',', $categories);
 
                     $newName = strip_tags($product->get_name(), "");
+                    $productPrice = $product->get_price();
+                    if ($productPrice === '' || $productPrice === null) {
+                        $productPrice = $product->get_regular_price();
+                    }
 
                     $gwItem = [
                         "productId" => $product->get_id(),
                         "productName" => $newName,
                         "description" => $newName,
-                        "price" => $product->get_sale_price(),
+                        "price" => $productPrice,
                         "currency" => "VND",
                         "quantity" => intval($item->get_quantity()),
                         "totalAmount" => floatval($item->get_total()),
@@ -270,7 +274,7 @@ class Fundiin extends WC_Gateway_Fundiin
         $merchantId = $this->merchantId;
         $secretKey = $this->secretKey;
         $storeId = $this->storeId;
-        $now = round(microtime(true) * 1000);
+        $now = (int) round(microtime(true) * 1000);
         $orderId = $clientId . "_REFUND_" . $order_id . "_" . $now;
         $transId = $order->get_transaction_id();
         if (!is_string($transId) || $transId === "") {
@@ -365,11 +369,11 @@ class Fundiin extends WC_Gateway_Fundiin
                 );
                 $order->update_meta_data(
                     "fundiin_refund_orderId",
-                    $result->referenceId
+                    sanitize_text_field($result->referenceId)
                 );
                 $order->update_meta_data(
                     "fundiin_refund_transId",
-                    $result->refundTransId
+                    sanitize_text_field($result->refundTransId)
                 );
 
                 // Save changes to the order

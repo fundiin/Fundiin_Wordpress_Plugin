@@ -7,6 +7,9 @@ if (!defined('ABSPATH')) {
 /** Handle authenticated server-to-server payment notifications. */
 class Fundiin_Response
 {
+    /** @var array<int, bool> In-process lock map to serialize concurrent notifications per order. */
+    private static $active_locks = array();
+
     public function __construct()
     {
         add_action('wp_ajax_fundiin_payment_response_return', array($this, 'fundiin_handle_response_return'));
@@ -15,7 +18,11 @@ class Fundiin_Response
 
     public function register_notify_api()
     {
-        register_rest_route('fundiin_payment_' . fundiin()->fundiin->clientId, 'notify', array(
+        $client_id = isset(fundiin()->fundiin->clientId) ? (string) fundiin()->fundiin->clientId : '';
+        if (!preg_match('/\A[A-Za-z0-9_-]+\z/', $client_id)) {
+            return;
+        }
+        register_rest_route('fundiin_payment_' . $client_id, 'notify', array(
             'methods' => 'POST',
             'callback' => array($this, 'check_fundiin_notify'),
             'permission_callback' => array($this, 'verify_notification'),
@@ -70,7 +77,7 @@ class Fundiin_Response
             return new WP_Error('fundiin_invalid_order', 'Invalid payment order.', array('status' => 400));
         }
         $reference = $order->get_meta('_fundiin_reference_id');
-        if (($reference !== '' && !hash_equals((string) $reference, $data['referenceId'])) ||
+        if (!is_string($reference) || $reference === '' || !hash_equals($reference, $data['referenceId']) ||
             $data['amount']['currency'] !== $order->get_currency() ||
             wc_format_decimal($data['amount']['value'], 2) !== wc_format_decimal($order->get_total(), 2)) {
             return new WP_Error('fundiin_payment_mismatch', 'Payment does not match the order.', array('status' => 400));
@@ -78,15 +85,24 @@ class Fundiin_Response
         if ($data['paymentStatus'] === 'PENDING' || !$order->has_status(array('pending', 'on-hold'))) {
             return new WP_REST_Response(null, 204);
         }
+        if (!$this->acquire_order_lock($order_id)) {
+            return new WP_Error('fundiin_notification_busy', 'Order notification is already being processed.', array('status' => 409));
+        }
         try {
+            // Re-check status after acquiring the lock to prevent TOCTOU double-processing.
+            $order = wc_get_order($order_id);
+            if (!$order || !$order->has_status(array('pending', 'on-hold'))) {
+                return new WP_REST_Response(null, 204);
+            }
             if ($data['paymentStatus'] === 'SUCCESS') {
-                $order->update_meta_data('fundiin_transId', $data['paymentTransId']);
+                $trans_id = sanitize_text_field($data['paymentTransId']);
+                $order->update_meta_data('fundiin_transId', $trans_id);
                 if (isset($data['orderId']) && is_scalar($data['orderId'])) {
                     $order->update_meta_data('fundiin_orderId', sanitize_text_field((string) $data['orderId']));
                 }
                 // WooCommerce owns stock reduction and the processing/completed transition.
-                $order->payment_complete($data['paymentTransId']);
-                $order->add_order_note('Thanh toán thành công qua Fundiin với mã số giao dịch ' . sanitize_text_field($data['paymentTransId']) . '.');
+                $order->payment_complete($trans_id);
+                $order->add_order_note('Thanh toán thành công qua Fundiin với mã số giao dịch ' . $trans_id . '.');
             } else {
                 $order->update_status('cancelled', 'Đơn hàng bị huỷ qua Fundiin.');
             }
@@ -95,6 +111,38 @@ class Fundiin_Response
         } catch (Exception $ex) {
             Fundiin_Logger::wr_log('Payment notification processing failed for order ' . $order_id);
             return new WP_Error('fundiin_notification_failed', 'Unable to process notification.', array('status' => 500));
+        } finally {
+            $this->release_order_lock($order_id);
+        }
+    }
+
+    private function acquire_order_lock($order_id)
+    {
+        $order_id = (int) $order_id;
+        if (isset(self::$active_locks[$order_id])) {
+            return false;
+        }
+        if (function_exists('add_option')) {
+            $lock_key = '_fundiin_notify_lock_' . $order_id;
+            $now = time();
+            if (!add_option($lock_key, (string) $now, '', 'no')) {
+                $existing = (int) get_option($lock_key, 0);
+                if ($existing > 0 && ($now - $existing) < 30) {
+                    return false;
+                }
+                update_option($lock_key, (string) $now, 'no');
+            }
+        }
+        self::$active_locks[$order_id] = true;
+        return true;
+    }
+
+    private function release_order_lock($order_id)
+    {
+        $order_id = (int) $order_id;
+        unset(self::$active_locks[$order_id]);
+        if (function_exists('delete_option')) {
+            delete_option('_fundiin_notify_lock_' . $order_id);
         }
     }
 

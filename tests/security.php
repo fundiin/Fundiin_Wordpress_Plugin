@@ -27,7 +27,7 @@ class WC_Payment_Gateway {}
 class WC_Logger {}
 class TestOrder {
     public $status = 'pending', $method = 'fundiin', $total = '100000', $currency = 'VND', $transaction = '';
-    public $meta = array(), $notes = array(), $payments = 0;
+    public $meta = array('_fundiin_reference_id' => '42_1792728000000'), $notes = array(), $payments = 0;
     public function get_id() { return 42; }
     public function get_payment_method() { return $this->method; }
     public function get_currency() { return $this->currency; }
@@ -69,6 +69,8 @@ function wc_format_decimal($value, $dp = false) { return $dp === false ? (string
 function sanitize_text_field($value) { return strip_tags($value); }
 function wp_json_encode($value) { return json_encode($value); }
 function esc_url($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+function esc_attr($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+function esc_html($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
 function wp_parse_url($value) { return parse_url($value); }
 function wc_add_notice($message, $type) {}
 function __($message, $domain) { return $message; }
@@ -176,17 +178,30 @@ check(rejected($response->check_fundiin_notify(signed_request(notification(array
 $GLOBALS['order']->method = 'cod';
 check(rejected($response->check_fundiin_notify(signed_request(notification())), 'fundiin_invalid_order'), 'different gateway blocked');
 $GLOBALS['order']->method = 'fundiin';
+$GLOBALS['order']->meta['_fundiin_reference_id'] = '';
+check(rejected($response->check_fundiin_notify(signed_request(notification())), 'fundiin_payment_mismatch'), 'missing persisted reference blocked');
 $GLOBALS['order']->meta['_fundiin_reference_id'] = '42_1792728000001';
 check(rejected($response->check_fundiin_notify(signed_request(notification())), 'fundiin_payment_mismatch'), 'stale payment attempt blocked');
 $GLOBALS['order']->meta['_fundiin_reference_id'] = '42_1792728000000';
+$locks_prop = new ReflectionProperty('Fundiin_Response', 'active_locks');
+if (PHP_VERSION_ID < 80100) { $locks_prop->setAccessible(true); }
+$locks_prop->setValue(null, array(42 => true));
+check(rejected($response->check_fundiin_notify(signed_request(notification())), 'fundiin_notification_busy'), 'concurrent notification lock enforced');
+$locks_prop->setValue(null, array());
 check($response->check_fundiin_notify(signed_request(notification(array('paymentStatus' => 'PENDING'))))->status === 204 && $GLOBALS['order']->status === 'pending', 'pending event leaves order unpaid');
 check($GLOBALS['order']->payments === 0, 'rejected events never complete payment');
-check($response->check_fundiin_notify(signed_request(notification()))->status === 204 && $GLOBALS['order']->status === 'completed', 'valid payment preserves WooCommerce completed status');
+check($response->check_fundiin_notify(signed_request(notification(array('paymentTransId' => '<b>tx-1</b>'))))->status === 204 && $GLOBALS['order']->status === 'completed', 'valid payment preserves WooCommerce completed status');
+check($GLOBALS['order']->meta['fundiin_transId'] === 'tx-1' && $GLOBALS['order']->transaction === 'tx-1', 'transaction meta sanitized before storage');
 $response->check_fundiin_notify(signed_request(notification()));
 $response->check_fundiin_notify(signed_request(notification(array('paymentStatus' => 'FAIL'))));
 check($GLOBALS['order']->payments === 1 && count($GLOBALS['order']->notes) === 1 && $GLOBALS['order']->status === 'completed', 'retries and late failures are idempotent');
 $GLOBALS['order'] = new TestOrder();
 check($response->check_fundiin_notify(signed_request(notification(array('paymentStatus' => 'FAIL', 'paymentTransId' => null))))->status === 204 && $GLOBALS['order']->status === 'cancelled', 'failure can omit success-only fields');
+$route_count_before = count($GLOBALS['routes']);
+$gateway->clientId = 'bad/client id';
+$response->register_notify_api();
+check(count($GLOBALS['routes']) === $route_count_before, 'malformed clientId does not register route');
+$gateway->clientId = 'client-test';
 
 // Stored XSS cannot break out of checkout script attributes or legacy script settings.
 $settings->merchantId = '\"><script>alert(1)</script>';

@@ -107,19 +107,21 @@ class Fundiin_Api
         $order = $data_array['order'];
         $date_from = $data_array['date_from'];
         $date_to = $data_array['date_to'];
+        $order_sql = $order === 'ASC' ? 'ASC' : 'DESC';
         $query = "
-        SELECT DISTINCT 
+        SELECT 
             pm_email.meta_value AS email, 
-            pm_phone.meta_value AS phone,
-            pm_first_name.meta_value AS first_name,
-            pm_last_name.meta_value AS last_name,
-            p.ID AS post_id
+            MAX(pm_phone.meta_value) AS phone,
+            MAX(pm_first_name.meta_value) AS first_name,
+            MAX(pm_last_name.meta_value) AS last_name,
+            MAX(p.ID) AS post_id
         FROM {$wpdb->prefix}postmeta pm_email
         LEFT JOIN {$wpdb->prefix}postmeta pm_phone ON pm_email.post_id = pm_phone.post_id AND pm_phone.meta_key = '_billing_phone'
         LEFT JOIN {$wpdb->prefix}postmeta pm_first_name ON pm_email.post_id = pm_first_name.post_id AND pm_first_name.meta_key = '_billing_first_name'
         LEFT JOIN {$wpdb->prefix}postmeta pm_last_name ON pm_email.post_id = pm_last_name.post_id AND pm_last_name.meta_key = '_billing_last_name'
         INNER JOIN {$wpdb->prefix}posts p ON pm_email.post_id = p.ID
         WHERE pm_email.meta_key = '_billing_email'
+          AND pm_email.meta_value <> ''
           AND p.post_type = 'shop_order'
     ";
 
@@ -131,8 +133,8 @@ class Fundiin_Api
             $query .= $wpdb->prepare(" AND p.post_date <= %s", $date_to);
         }
 
-        // Sắp xếp và giới hạn
-        $query .= " ORDER BY p.post_date {$order}";
+        // Nhóm theo email để tránh truy vấn lặp N+1 cho cùng một khách hàng
+        $query .= " GROUP BY pm_email.meta_value ORDER BY MAX(p.post_date) {$order_sql}";
         if ($limit > 0) {
             $query .= $wpdb->prepare(" LIMIT %d OFFSET %d", $limit, $data_array['offset']);
         }
@@ -140,7 +142,12 @@ class Fundiin_Api
         $results = $wpdb->get_results($query);
 
         $user_data = [];
+        $seen_emails = [];
         foreach ($results as $row) {
+            if (!isset($row->email) || !is_string($row->email) || $row->email === '' || isset($seen_emails[$row->email])) {
+                continue;
+            }
+            $seen_emails[$row->email] = true;
             $contact_info = $row->phone ?: $row->email; // Ưu tiên số điện thoại, nếu không có thì dùng email
             $user = get_user_by('email', $row->email);
 
